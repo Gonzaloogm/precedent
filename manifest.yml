@@ -52,6 +52,15 @@ modules:
         - list-jira-projects
         - create-jira-epic
 
+  confluence:globalPage:
+    - key: get-started
+      title: SprintFounders
+      route: get-started
+      render: native
+      resource: get-started-ui
+      resolver:
+        function: getStartedResolver
+
   action:
     - key: get-review-context
       name: Get review context
@@ -190,16 +199,23 @@ modules:
       handler: index.listJiraProjects
     - key: createJiraEpic
       handler: index.createJiraEpic
+    - key: getStartedResolver
+      handler: getStarted.handler
 
 resources:
   - key: agent-resources
     path: resource/agent
+  - key: get-started-ui
+    path: src/frontend/getStarted.jsx
 
 permissions:
   scopes:
     - read:page:confluence
     - write:page:confluence
     - read:comment:confluence
+    - write:comment:confluence
+    - read:space:confluence
+    - write:space:confluence
     - search:confluence
     - read:jira-work
     - write:jira-work
