@@ -16,6 +16,10 @@ modules:
         - Stress-test the proposal on this page
         - Has our company already tried something like this?
         - Who exactly is the customer for this initiative?
+      followUpPrompt: >-
+        Suggest short next steps that keep the human in charge: challenge the weakest assumption
+        in the report, ask for evidence behind a specific score, check the company's past work on
+        a related topic, or save the report as a child page once the user is satisfied.
       actions:
         - get-proposal
         - find-related-initiatives
