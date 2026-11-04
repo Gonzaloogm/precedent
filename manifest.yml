@@ -1,0 +1,100 @@
+app:
+  # Replaced by `forge register` with the real app id.
+  id: ari:cloud:ecosystem::app/00000000-0000-0000-0000-000000000000
+  runtime:
+    name: nodejs24.x
+
+modules:
+  rovo:agent:
+    - key: market-research-agent
+      name: SF Market Research
+      description: >-
+        Stress-tests the initiative proposal on the current Confluence page: ideal customer,
+        market size, competitors, risks and a viability score, cross-checked against
+        similar work your company has already done.
+      prompt: resource:agent-resources;prompts/market-research.txt
+      conversationStarters:
+        - Stress-test the proposal on this page
+        - Has our company already tried something like this?
+        - Who exactly is the customer for this initiative?
+      actions:
+        - get-proposal
+        - find-related-initiatives
+        - save-report
+
+  action:
+    - key: get-proposal
+      name: Get proposal
+      function: getProposal
+      actionVerb: GET
+      description: >-
+        Reads the initiative proposal from the current Confluence page (title and body as plain
+        text). Call this first, before any analysis.
+      inputs:
+        pageId:
+          title: Page ID
+          type: string
+          required: false
+          description: Confluence page ID. Leave empty to use the page the user is on.
+
+    - key: find-related-initiatives
+      name: Find related initiatives
+      function: findRelatedInitiatives
+      actionVerb: GET
+      description: >-
+        Searches this site's Confluence pages and Jira issues for earlier initiatives, decisions or
+        projects similar to the proposal. Returns titles, links, status and excerpts to cite.
+      inputs:
+        keywords:
+          title: Keywords
+          type: string
+          required: true
+          description: 3 to 6 distinctive keywords from the proposal, separated by spaces.
+        pageId:
+          title: Page ID
+          type: string
+          required: false
+          description: The proposal page ID, so it is excluded from the results.
+
+    - key: save-report
+      name: Save report
+      function: saveReport
+      actionVerb: CREATE
+      description: >-
+        Saves the finished report as a child page of the proposal. Only call this after the user
+        has reviewed the report and explicitly confirmed they want it saved.
+      inputs:
+        reportMarkdown:
+          title: Report (Markdown)
+          type: string
+          required: true
+          description: The full report in Markdown.
+        reportTitle:
+          title: Report title
+          type: string
+          required: true
+          description: Short title, e.g. "Market Research - <proposal title>".
+        pageId:
+          title: Page ID
+          type: string
+          required: false
+          description: The proposal page ID. Leave empty to use the page the user is on.
+
+  function:
+    - key: getProposal
+      handler: index.getProposal
+    - key: findRelatedInitiatives
+      handler: index.findRelatedInitiatives
+    - key: saveReport
+      handler: index.saveReport
+
+resources:
+  - key: agent-resources
+    path: resource/agent
+
+permissions:
+  scopes:
+    - read:page:confluence
+    - write:page:confluence
+    - search:confluence
+    - read:jira-work
