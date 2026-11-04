@@ -1,5 +1,5 @@
 import api, { route } from '@forge/api';
-import { storageToText, markdownToStorage, aiNoticePanel } from './lib/format.js';
+import { storageToText, markdownToStorage, aiNoticePanel, stripLeadingTitle } from './lib/format.js';
 import { sanitizeKeywords, isValidId, buildCql, buildJql } from './lib/search.js';
 
 const MAX_RESULTS = 5;
@@ -132,7 +132,7 @@ export async function saveReport(payload) {
   try {
     const parent = await fetchPage(pageId);
     const baseTitle = (payload.reportTitle || `Market Research - ${parent.title}`).slice(0, 200);
-    const storage = aiNoticePanel() + markdownToStorage(payload.reportMarkdown);
+    const storage = aiNoticePanel() + markdownToStorage(stripLeadingTitle(payload.reportMarkdown));
 
     let response = await createChildPage(parent.spaceId, pageId, baseTitle, storage);
     if (response.status === 400 || response.status === 409) {

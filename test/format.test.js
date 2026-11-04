@@ -1,6 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { storageToText, markdownToStorage, escapeHtml } from '../src/lib/format.js';
+import { storageToText, markdownToStorage, escapeHtml, stripLeadingTitle } from '../src/lib/format.js';
+
+test('stripLeadingTitle removes only a leading H1', () => {
+  assert.equal(stripLeadingTitle('# Report\n**Verdict:** go'), '**Verdict:** go');
+  assert.equal(stripLeadingTitle('\n# Report\nbody'), 'body');
+  assert.equal(stripLeadingTitle('## Section\nbody'), '## Section\nbody');
+  assert.equal(stripLeadingTitle('intro\n# Later'), 'intro\n# Later');
+});
 
 test('storageToText strips tags, keeps structure and decodes entities', () => {
   const { text, truncated } = storageToText(

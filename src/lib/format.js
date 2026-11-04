@@ -111,6 +111,11 @@ export function markdownToStorage(markdown) {
   return out.join('');
 }
 
+/** The page title already names the report, so drop a leading `# Title` line. */
+export function stripLeadingTitle(markdown) {
+  return (markdown || '').replace(/^\s*#\s+[^\n]*\n?/, '');
+}
+
 export function aiNoticePanel() {
   return (
     '<ac:structured-macro ac:name="info"><ac:rich-text-body><p>' +
