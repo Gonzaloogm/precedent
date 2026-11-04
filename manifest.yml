@@ -2,6 +2,12 @@ app:
   id: ari:cloud:ecosystem::app/ee229f6b-ee7f-480c-8ac8-e6e2cbec7b51
   runtime:
     name: nodejs24.x
+  # One installation (and one Rovo agent) that can also read Jira for the deja-vu check.
+  compatibility:
+    confluence:
+      required: true
+    jira:
+      required: false
 
 modules:
   rovo:agent:
