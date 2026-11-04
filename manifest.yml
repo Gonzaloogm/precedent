@@ -49,6 +49,8 @@ modules:
         - get-review-context
         - find-related-initiatives
         - save-report
+        - list-jira-projects
+        - create-jira-epic
 
   action:
     - key: get-review-context
@@ -64,6 +66,55 @@ modules:
           type: string
           required: false
           description: Proposal or report page ID. Leave empty to use the page the user is on.
+
+    - key: list-jira-projects
+      name: List Jira projects
+      function: listJiraProjects
+      actionVerb: GET
+      description: >-
+        Lists the Jira projects the user can see (key, name, type), so the user can choose where
+        the initiative's epic should be created.
+      inputs:
+        query:
+          title: Filter
+          type: string
+          required: false
+          description: Not used yet; leave empty.
+
+    - key: create-jira-epic
+      name: Create Jira epic
+      function: createJiraEpic
+      actionVerb: CREATE
+      description: >-
+        Creates one epic with child stories in a Jira project, linked back to the proposal page.
+        Only call this after the user has approved the epic draft and chosen the project.
+      inputs:
+        projectKey:
+          title: Project key
+          type: string
+          required: true
+          description: Key of the Jira project chosen by the user, e.g. SFD.
+        epicSummary:
+          title: Epic summary
+          type: string
+          required: true
+          description: Short epic title.
+        epicDescription:
+          title: Epic description
+          type: string
+          required: true
+          description: Goal, verdict and first milestone, as short paragraphs and "- " bullets.
+        storiesList:
+          title: Stories
+          type: string
+          required: true
+          description: >-
+            One story per line, as "- Summary | details". 3 to 8 stories.
+        pageId:
+          title: Page ID
+          type: string
+          required: false
+          description: The proposal or review page ID. Leave empty to use the page the user is on.
 
     - key: get-proposal
       name: Get proposal
@@ -135,6 +186,10 @@ modules:
       handler: index.saveReport
     - key: getReviewContext
       handler: index.getReviewContext
+    - key: listJiraProjects
+      handler: index.listJiraProjects
+    - key: createJiraEpic
+      handler: index.createJiraEpic
 
 resources:
   - key: agent-resources
@@ -147,3 +202,4 @@ permissions:
     - read:comment:confluence
     - search:confluence
     - read:jira-work
+    - write:jira-work

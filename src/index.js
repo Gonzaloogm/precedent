@@ -2,6 +2,7 @@ import api, { route } from '@forge/api';
 import { storageToText, markdownToStorage, aiNoticePanel, stripLeadingTitle } from './lib/format.js';
 import { sanitizeKeywords, isValidId, buildCql, buildJql } from './lib/search.js';
 import { collectObjections, isReportTitle } from './lib/review.js';
+import { parseStories, pickIssueTypes, textToAdf, isValidProjectKey } from './lib/jira.js';
 
 const MAX_RESULTS = 5;
 const MAX_REPORTS = 4;
@@ -208,5 +209,121 @@ export async function saveReport(payload) {
   } catch (err) {
     console.error('saveReport failed', err.message);
     return { error: `Could not save the report: ${err.message}` };
+  }
+}
+
+async function jiraRequest(path, options = {}) {
+  const response = await api.asUser().requestJira(path, {
+    ...options,
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...options.headers },
+  });
+  return readJson(response);
+}
+
+export async function listJiraProjects() {
+  try {
+    const data = await jiraRequest(route`/rest/api/3/project/search?maxResults=${30}&orderBy=${'name'}`);
+    return {
+      projects: (data.values || []).map((p) => ({ key: p.key, name: p.name, type: p.projectTypeKey })),
+    };
+  } catch (err) {
+    console.error('listJiraProjects failed', err.message);
+    return { error: 'Jira is not available on this site, or you cannot browse its projects.' };
+  }
+}
+
+// The proposal page, so the epic links back to where the decision was made.
+async function proposalLink(payload) {
+  const pageId = resolvePageId(payload);
+  if (!pageId) return null;
+  try {
+    let page = await fetchPage(pageId);
+    if (isReportTitle(page.title) && isValidId(page.parentId)) page = await fetchPage(page.parentId);
+    const base = page._links?.base || '';
+    return { title: page.title, url: base + (page._links?.webui || ''), siteUrl: base.replace(/\/wiki$/, '') };
+  } catch (err) {
+    console.error('proposalLink failed', err.message);
+    return null;
+  }
+}
+
+// Guards against a second confirmation creating the same epic twice.
+async function findRecentEpic(projectKey, epicTypeId, summary) {
+  const data = await jiraRequest(route`/rest/api/3/search/jql`, {
+    method: 'POST',
+    body: JSON.stringify({
+      jql: `project = ${projectKey} AND issuetype = ${epicTypeId} AND created >= -1d ORDER BY created DESC`,
+      maxResults: 20,
+      fields: ['summary'],
+    }),
+  });
+  return (data.issues || []).find((i) => i.fields?.summary?.trim() === summary.trim()) || null;
+}
+
+export async function createJiraEpic(payload) {
+  const projectKey = String(payload?.projectKey || '').trim().toUpperCase();
+  if (!isValidProjectKey(projectKey)) return { error: 'Provide a valid Jira project key (e.g. SFD).' };
+  const summary = String(payload?.epicSummary || '').trim().slice(0, 250);
+  if (!summary) return { error: 'The epic needs a summary.' };
+  const stories = parseStories(payload?.storiesList);
+
+  try {
+    const meta = await jiraRequest(route`/rest/api/3/issue/createmeta/${projectKey}/issuetypes`);
+    const { epicTypeId, storyTypeId } = pickIssueTypes(meta.issueTypes || meta.createMetaIssueType);
+    if (!epicTypeId) return { error: `Project ${projectKey} has no Epic issue type. Pick another project.` };
+
+    const source = await proposalLink(payload);
+    const browse = (key) => (source?.siteUrl ? `${source.siteUrl}/browse/${key}` : null);
+
+    const existing = await findRecentEpic(projectKey, epicTypeId, summary);
+    if (existing) {
+      return { alreadyExists: true, epic: { key: existing.key, url: browse(existing.key) } };
+    }
+
+    const description =
+      String(payload?.epicDescription || '') +
+      (source ? `\n\nDecision record: [${source.title}](${source.url})` : '') +
+      '\n\nCreated by SprintFounders after human review.';
+    const epic = await jiraRequest(route`/rest/api/3/issue`, {
+      method: 'POST',
+      body: JSON.stringify({
+        fields: {
+          project: { key: projectKey },
+          issuetype: { id: epicTypeId },
+          summary,
+          description: textToAdf(description),
+        },
+      }),
+    });
+
+    let created = [];
+    let failed = 0;
+    if (stories.length && storyTypeId) {
+      const bulk = await jiraRequest(route`/rest/api/3/issue/bulk`, {
+        method: 'POST',
+        body: JSON.stringify({
+          issueUpdates: stories.map((s) => ({
+            fields: {
+              project: { key: projectKey },
+              issuetype: { id: storyTypeId },
+              parent: { key: epic.key },
+              summary: s.summary,
+              ...(s.details ? { description: textToAdf(s.details) } : {}),
+            },
+          })),
+        }),
+      });
+      created = (bulk.issues || []).map((i) => ({ key: i.key, url: browse(i.key) }));
+      failed = (bulk.errors || []).length;
+    }
+
+    return {
+      epic: { key: epic.key, url: browse(epic.key) },
+      stories: created,
+      ...(failed ? { warning: `${failed} stories could not be created.` } : {}),
+    };
+  } catch (err) {
+    console.error('createJiraEpic failed', err.message);
+    return { error: `Could not create the Jira issues: ${err.message}` };
   }
 }
