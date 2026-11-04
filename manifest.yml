@@ -31,7 +31,40 @@ modules:
         - find-related-initiatives
         - save-report
 
+    - key: devils-advocate-agent
+      name: SF Devil's Advocate
+      description: >-
+        Plays the funding committee: reads the proposal, the earlier SprintFounders reports and
+        the team's comments, answers every objection and gives a go / pivot / kill verdict.
+      prompt: resource:agent-resources;prompts/devils-advocate.txt
+      conversationStarters:
+        - Should we fund this initiative?
+        - Answer the objections in the comments
+        - What would make you kill this initiative?
+      followUpPrompt: >-
+        Suggest short next steps that keep the human in charge: push back on the verdict, add an
+        objection as a page comment and re-run the review, explore one of the pivot options, or
+        save the review as a child page once the user agrees.
+      actions:
+        - get-review-context
+        - find-related-initiatives
+        - save-report
+
   action:
+    - key: get-review-context
+      name: Get review context
+      function: getReviewContext
+      actionVerb: GET
+      description: >-
+        Reads the proposal, the SprintFounders reports saved under it, and the team's open page
+        comments (objections). Works from the proposal or from any of its reports. Call this first.
+      inputs:
+        pageId:
+          title: Page ID
+          type: string
+          required: false
+          description: Proposal or report page ID. Leave empty to use the page the user is on.
+
     - key: get-proposal
       name: Get proposal
       function: getProposal
@@ -84,7 +117,9 @@ modules:
           title: Report title
           type: string
           required: true
-          description: Short title, e.g. "Market Research - <proposal title>".
+          description: >-
+            Short title starting with the report type, e.g. "Market Research - <proposal title>"
+            or "Devil's Advocate Review - <proposal title>".
         pageId:
           title: Page ID
           type: string
@@ -98,6 +133,8 @@ modules:
       handler: index.findRelatedInitiatives
     - key: saveReport
       handler: index.saveReport
+    - key: getReviewContext
+      handler: index.getReviewContext
 
 resources:
   - key: agent-resources
@@ -107,5 +144,6 @@ permissions:
   scopes:
     - read:page:confluence
     - write:page:confluence
+    - read:comment:confluence
     - search:confluence
     - read:jira-work

@@ -1,8 +1,11 @@
 import api, { route } from '@forge/api';
 import { storageToText, markdownToStorage, aiNoticePanel, stripLeadingTitle } from './lib/format.js';
 import { sanitizeKeywords, isValidId, buildCql, buildJql } from './lib/search.js';
+import { collectObjections, isReportTitle } from './lib/review.js';
 
 const MAX_RESULTS = 5;
+const MAX_REPORTS = 4;
+const MAX_REPORT_CHARS = 8000;
 
 // Agent inputs can be hallucinated: prefer the page the user is actually on, and only accept
 // numeric IDs. Permissions are enforced by calling the APIs asUser().
@@ -39,6 +42,64 @@ export async function getProposal(payload) {
   } catch (err) {
     console.error('getProposal failed', err.message);
     return { error: `Could not read the page: ${err.message}` };
+  }
+}
+
+async function confluenceGet(path) {
+  const response = await api.asUser().requestConfluence(path, { headers: { Accept: 'application/json' } });
+  return readJson(response);
+}
+
+async function fetchComments(pageId) {
+  const [footer, inline] = await Promise.all([
+    confluenceGet(route`/wiki/api/v2/pages/${pageId}/footer-comments?body-format=storage&limit=${25}`),
+    confluenceGet(route`/wiki/api/v2/pages/${pageId}/inline-comments?body-format=storage&limit=${25}`),
+  ]);
+  return { footer: footer.results || [], inline: inline.results || [] };
+}
+
+export async function getReviewContext(payload) {
+  const startId = resolvePageId(payload);
+  if (!startId) return { error: 'Open the proposal (or one of its reports) in Confluence.' };
+
+  try {
+    // Started from a saved report: review its parent proposal instead.
+    let proposal = await fetchPage(startId);
+    if (isReportTitle(proposal.title) && isValidId(proposal.parentId)) {
+      proposal = await fetchPage(proposal.parentId);
+    }
+
+    const children = await confluenceGet(route`/wiki/api/v2/pages/${proposal.id}/children?limit=${25}`);
+    const reportRefs = (children.results || [])
+      .filter((c) => c.status === 'current' && isReportTitle(c.title))
+      .slice(0, MAX_REPORTS);
+    const reportPages = await Promise.all(reportRefs.map((r) => fetchPage(r.id)));
+
+    // Comments are the team's objections: reading them is optional, so failures only warn.
+    const warnings = [];
+    const groups = [];
+    for (const page of [proposal, ...reportPages]) {
+      try {
+        groups.push({ pageTitle: page.title, ...(await fetchComments(page.id)) });
+      } catch (err) {
+        console.error('fetchComments failed', err.message);
+        warnings.push(`Could not read comments on "${page.title}".`);
+      }
+    }
+
+    return {
+      proposal: { pageId: proposal.id, title: proposal.title, ...storageToText(proposal.body?.storage?.value) },
+      reports: reportPages.map((p) => ({
+        pageId: p.id,
+        title: p.title,
+        ...storageToText(p.body?.storage?.value, MAX_REPORT_CHARS),
+      })),
+      objections: collectObjections(groups),
+      warnings,
+    };
+  } catch (err) {
+    console.error('getReviewContext failed', err.message);
+    return { error: `Could not read the proposal: ${err.message}` };
   }
 }
 
@@ -130,15 +191,17 @@ export async function saveReport(payload) {
   if (!payload?.reportMarkdown?.trim()) return { error: 'The report is empty.' };
 
   try {
-    const parent = await fetchPage(pageId);
-    const baseTitle = (payload.reportTitle || `Market Research - ${parent.title}`).slice(0, 200);
+    // Reports always hang off the proposal, even when the run started from another report.
+    let parent = await fetchPage(pageId);
+    if (isReportTitle(parent.title) && isValidId(parent.parentId)) parent = await fetchPage(parent.parentId);
+    const baseTitle = (payload.reportTitle || `SprintFounders report - ${parent.title}`).slice(0, 200);
     const storage = aiNoticePanel() + markdownToStorage(stripLeadingTitle(payload.reportMarkdown));
 
-    let response = await createChildPage(parent.spaceId, pageId, baseTitle, storage);
+    let response = await createChildPage(parent.spaceId, parent.id, baseTitle, storage);
     if (response.status === 400 || response.status === 409) {
       // Titles are unique per space: retry once with a timestamp.
       const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
-      response = await createChildPage(parent.spaceId, pageId, `${baseTitle} (${stamp})`, storage);
+      response = await createChildPage(parent.spaceId, parent.id, `${baseTitle} (${stamp})`, storage);
     }
     const page = await readJson(response);
     return { saved: true, title: page.title, url: (page._links?.base || '') + (page._links?.webui || '') };
