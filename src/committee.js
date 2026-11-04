@@ -19,7 +19,7 @@ async function gateStatuses(gates) {
   if (!response.ok) return {};
   const data = await response.json();
   return Object.fromEntries(
-    (data.issues || []).map((i) => [i.key, { state: gateState(i.fields), status: i.fields?.status?.name }])
+    (data.issues || []).map((i) => [i.key, { state: gateState(i.fields), status: i.fields?.status?.name, ...(i.fields?.duedate ? { due: i.fields.duedate } : {}) }])
   );
 }
 
@@ -56,7 +56,13 @@ resolver.define('createGates', async ({ context }) => {
   const contentId = context?.extension?.content?.id;
   if (!isValidId(contentId)) return { error: 'Open the proposal page.' };
   try {
-    return await createGatesForPage(contentId);
+    // From a report page, act on the proposal it belongs to (same rule as getVerdict).
+    let pageId = contentId;
+    if (!(await readVerdict(contentId))) {
+      const current = await page(contentId);
+      if (current && isReportTitle(current.title) && isValidId(current.parentId)) pageId = current.parentId;
+    }
+    return await createGatesForPage(pageId);
   } catch (err) {
     console.error('createGates failed', err.message);
     return { error: 'The stage gates could not be created in Jira.' };
