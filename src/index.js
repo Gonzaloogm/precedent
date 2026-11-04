@@ -4,6 +4,7 @@ import { sanitizeKeywords, isValidId, buildCql, buildJql } from './lib/search.js
 import { collectObjections, isReportTitle } from './lib/review.js';
 import { parseStories, pickIssueTypes, textToAdf, isValidProjectKey, adfToText } from './lib/jira.js';
 import { buildVerdictRecord, bylineFor, VERDICT_PROPERTY, BYLINE_PROPERTY } from './lib/verdict.js';
+import { friendlyError } from './lib/errors.js';
 import { GATE_LABEL, gateSummary, pageLabel, dueDateFor } from './lib/gates.js';
 
 const MAX_RESULTS = 8;
@@ -22,7 +23,9 @@ function resolvePageId(payload) {
 async function readJson(response) {
   if (response.ok) return response.json();
   const detail = await response.text();
-  throw new Error(`Atlassian API ${response.status}: ${detail.slice(0, 300)}`);
+  const err = new Error(`Atlassian API ${response.status}: ${detail.slice(0, 300)}`);
+  err.status = response.status;
+  throw err;
 }
 
 async function fetchPage(pageId) {
@@ -44,7 +47,7 @@ export async function getProposal(payload) {
     return { pageId, title: page.title, body: text, truncated };
   } catch (err) {
     console.error('getProposal failed', err.message);
-    return { error: `Could not read the page: ${err.message}` };
+    return { error: friendlyError(err, 'read the page') };
   }
 }
 
@@ -102,7 +105,7 @@ export async function getReviewContext(payload) {
     };
   } catch (err) {
     console.error('getReviewContext failed', err.message);
-    return { error: `Could not read the proposal: ${err.message}` };
+    return { error: friendlyError(err, 'read the proposal') };
   }
 }
 
@@ -196,34 +199,42 @@ async function createChildPage(spaceId, parentId, title, storage) {
 
 // ---------- Content properties (structured verdict on the proposal) ----------
 
-async function getProperty(pageId, key) {
-  const data = await confluenceGet(route`/wiki/api/v2/pages/${pageId}/properties?key=${key}`);
+// actor: 'user' from agent actions and the panel, 'app' from event triggers (no user present).
+const confluenceAs = (actor) => (actor === 'app' ? api.asApp() : api.asUser());
+
+async function getProperty(pageId, key, actor = 'user') {
+  const response = await confluenceAs(actor).requestConfluence(
+    route`/wiki/api/v2/pages/${pageId}/properties?key=${key}`,
+    { headers: { Accept: 'application/json' } }
+  );
+  const data = await readJson(response);
   return data?.results?.[0] || null;
 }
 
-async function setProperty(pageId, key, value) {
-  const existing = await getProperty(pageId, key);
+async function setProperty(pageId, key, value, actor = 'user') {
+  const existing = await getProperty(pageId, key, actor);
+  const headers = { Accept: 'application/json', 'Content-Type': 'application/json' };
   const response = existing
-    ? await api.asUser().requestConfluence(route`/wiki/api/v2/pages/${pageId}/properties/${existing.id}`, {
+    ? await confluenceAs(actor).requestConfluence(route`/wiki/api/v2/pages/${pageId}/properties/${existing.id}`, {
         method: 'PUT',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ key, value, version: { number: (existing.version?.number || 1) + 1 } }),
       })
-    : await api.asUser().requestConfluence(route`/wiki/api/v2/pages/${pageId}/properties`, {
+    : await confluenceAs(actor).requestConfluence(route`/wiki/api/v2/pages/${pageId}/properties`, {
         method: 'POST',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ key, value }),
       });
   return readJson(response);
 }
 
-export async function readVerdict(pageId) {
-  return (await getProperty(pageId, VERDICT_PROPERTY))?.value || null;
+export async function readVerdict(pageId, actor = 'user') {
+  return (await getProperty(pageId, VERDICT_PROPERTY, actor))?.value || null;
 }
 
-async function writeVerdict(pageId, record) {
-  await setProperty(pageId, VERDICT_PROPERTY, record);
-  await setProperty(pageId, BYLINE_PROPERTY, bylineFor(record));
+export async function writeVerdict(pageId, record, actor = 'user') {
+  await setProperty(pageId, VERDICT_PROPERTY, record, actor);
+  await setProperty(pageId, BYLINE_PROPERTY, bylineFor(record), actor);
 }
 
 export async function saveReport(payload) {
@@ -262,7 +273,7 @@ export async function saveReport(payload) {
     return { saved: true, title: page.title, url, ...(record ? { verdict: record.verdict } : {}), ...(warning ? { warning } : {}) };
   } catch (err) {
     console.error('saveReport failed', err.message);
-    return { error: `Could not save the report: ${err.message}` };
+    return { error: friendlyError(err, 'save the report') };
   }
 }
 
@@ -441,6 +452,6 @@ export async function createJiraEpic(payload) {
     };
   } catch (err) {
     console.error('createJiraEpic failed', err.message);
-    return { error: `Could not create the Jira issues: ${err.message}` };
+    return { error: friendlyError(err, 'create the Jira work items') };
   }
 }

@@ -58,3 +58,18 @@ test('pickDoneTransition picks by status category, not by name', () => {
   assert.equal(pickDoneTransition([]), null);
   assert.equal(pickDoneTransition(undefined), null);
 });
+
+import { PROPOSAL_TEMPLATE, proposalTitle } from '../src/lib/template.js';
+
+test('proposal template converts cleanly and covers the sections the agents read', () => {
+  const storage = markdownToStorage(PROPOSAL_TEMPLATE);
+  for (const section of ['Problem', 'Success metrics', 'Key assumptions', 'Risks']) {
+    assert.match(storage, new RegExp(`<h2>${section}</h2>`));
+  }
+});
+
+test('proposalTitle prefixes and trims', () => {
+  assert.equal(proposalTitle('  Loyalty   app '), 'Proposal: Loyalty app');
+  assert.equal(proposalTitle('proposal: X'), 'proposal: X');
+  assert.equal(proposalTitle('   '), null);
+});

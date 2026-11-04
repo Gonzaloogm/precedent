@@ -89,8 +89,20 @@ export function bylineFor(record) {
   if (!record?.verdict) return { title: 'SprintFounders', tooltip: 'Not reviewed yet' };
   const score = record.score === null || record.score === undefined ? '' : ` · ${record.score}`;
   const upheld = (record.objections || []).filter((o) => o.ruling !== 'rejected').length;
+  const fresh = record.newComments > 0 ? ` · ${record.newComments} new` : '';
   return {
-    title: `Committee: ${record.verdict}${score}`,
-    tooltip: `${record.objections?.length || 0} objections answered, ${upheld} upheld. Click for details.`,
+    title: `Committee: ${record.verdict}${score}${fresh}`,
+    tooltip: record.newComments > 0
+      ? `${record.newComments} new comments since the review: consider re-running it.`
+      : `${record.objections?.length || 0} objections answered, ${upheld} upheld. Click for details.`,
   };
+}
+
+/** Counts a new comment against the verdict, ignoring comments older than the review. */
+export function withNewComment(record, commentCreated) {
+  if (!record?.verdict) return null;
+  const created = new Date(commentCreated || Date.now()).getTime();
+  const reviewed = new Date(record.reviewedAt).getTime();
+  if (Number.isFinite(reviewed) && created <= reviewed) return null;
+  return { ...record, newComments: (record.newComments || 0) + 1 };
 }

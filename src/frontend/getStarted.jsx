@@ -12,6 +12,7 @@ import ForgeReconciler, {
   Spinner,
   Stack,
   Text,
+  Textfield,
   xcss,
 } from '@forge/react';
 import { invoke, view } from '@forge/bridge';
@@ -64,11 +65,31 @@ function App() {
   const [confluenceResult, setConfluenceResult] = useState(null);
   const [jiraResult, setJiraResult] = useState(null);
   const [project, setProject] = useState(null);
+  const [spaces, setSpaces] = useState([]);
+  const [space, setSpace] = useState(null);
+  const [title, setTitle] = useState('');
+  const [proposalResult, setProposalResult] = useState(null);
 
   useEffect(() => {
     invoke('sampleStatus').then(setStatus).catch(() => setStatus({ projects: [], jira: 'missing' }));
     view.getContext().then(setContext).catch(() => setContext({}));
+    invoke('listSpaces').then((r) => setSpaces(r?.spaces || [])).catch(() => setSpaces([]));
   }, []);
+
+  const newProposal = async () => {
+    setProposalResult(null);
+    setStep('Creating the proposal page');
+    const r = await call('createProposal', { spaceId: space?.value, title });
+    setStep(null);
+    if (!r.ok) return setProposalResult({ title: 'The proposal was not created', error: r.error });
+    const url = `${r.base || siteUrl}/wiki${r.webui}`;
+    setProposalResult({
+      title: 'Proposal created',
+      lines: ['Fill in each section, then ask SF Market Research to stress-test it.'],
+      links: [{ href: url, label: 'Open the new proposal' }],
+    });
+    setTitle('');
+  };
 
   const siteUrl = context?.siteUrl || '';
   const busy = Boolean(step);
@@ -183,7 +204,40 @@ function App() {
 
       <Box xcss={card}>
         <Stack space="space.150">
-          <Heading as="h3">2. Review a proposal</Heading>
+          <Heading as="h3">2. Write a proposal</Heading>
+          <Text>
+            Creates a page with the sections the committee reads: problem, solution, customer, success metrics, key
+            assumptions and risks.
+          </Text>
+          <Inline space="space.100" alignBlock="end" shouldWrap>
+            <Box xcss={selectBox}>
+              <Select
+                inputId="proposal-space"
+                placeholder="Choose a space"
+                options={spaces.map((sp) => ({ label: `${sp.name} (${sp.key})`, value: sp.id }))}
+                value={space}
+                onChange={setSpace}
+              />
+            </Box>
+            <Box xcss={selectBox}>
+              <Textfield
+                name="proposal-title"
+                placeholder="What do you want to fund?"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </Box>
+            <Button appearance="primary" onClick={newProposal} isDisabled={busy || !space || !title.trim()}>
+              Create proposal
+            </Button>
+          </Inline>
+          <Message result={proposalResult} />
+        </Stack>
+      </Box>
+
+      <Box xcss={card}>
+        <Stack space="space.150">
+          <Heading as="h3">3. Review it</Heading>
           <List type="ordered">
             <ListItem>
               <Text>Open a proposal page and open Rovo chat.</Text>

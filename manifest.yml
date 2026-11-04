@@ -52,6 +52,12 @@ modules:
         - list-jira-projects
         - create-jira-epic
 
+  trigger:
+    - key: comment-created
+      function: commentCreated
+      events:
+        - avi:confluence:created:comment
+
   scheduledTrigger:
     - key: daily-gate-check
       function: gateCheck
@@ -246,6 +252,8 @@ modules:
       handler: committee.handler
     - key: gateCheck
       handler: gateCheck.run
+    - key: commentCreated
+      handler: commentEvents.onComment
 
 resources:
   - key: agent-resources
@@ -264,5 +272,6 @@ permissions:
     - read:space:confluence
     - write:space:confluence
     - search:confluence
+    - read:confluence-content.summary
     - read:jira-work
     - write:jira-work

@@ -8,6 +8,7 @@ import {
   parseGates,
   buildVerdictRecord,
   bylineFor,
+  withNewComment,
 } from '../src/lib/verdict.js';
 
 test('parseVerdict accepts only GO, PIVOT or STOP', () => {
@@ -75,4 +76,14 @@ test('buildVerdictRecord and bylineFor', () => {
     tooltip: '2 objections answered, 1 upheld. Click for details.',
   });
   assert.equal(bylineFor(null).title, 'SprintFounders');
+});
+
+test('withNewComment counts only comments after the review', () => {
+  const record = { verdict: 'PIVOT', score: 55, reviewedAt: '2026-11-04T10:00:00Z', objections: [] };
+  assert.equal(withNewComment(record, '2026-11-04T09:00:00Z'), null);
+  const once = withNewComment(record, '2026-11-04T11:00:00Z');
+  assert.equal(once.newComments, 1);
+  assert.equal(withNewComment(once, '2026-11-04T12:00:00Z').newComments, 2);
+  assert.equal(bylineFor(once).title, 'Committee: PIVOT · 55 · 1 new');
+  assert.equal(withNewComment(null, '2026-11-05'), null);
 });

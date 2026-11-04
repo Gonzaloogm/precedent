@@ -4,6 +4,7 @@
 import api, { route } from '@forge/api';
 import { markdownToStorage, escapeHtml } from './lib/format.js';
 import { pickIssueTypes, textToAdf, isValidProjectKey } from './lib/jira.js';
+import { PROPOSAL_TEMPLATE, proposalTitle } from './lib/template.js';
 import {
   SAMPLE_SPACE,
   SAMPLE_LABEL,
@@ -262,5 +263,42 @@ export async function seedJiraEpic(projectKey, index) {
       forbidden: 'You cannot create work items in the sample project.',
       other: 'A sample epic could not be created.',
     });
+  }
+}
+
+// ---------- Proposal template ----------
+
+export async function listSpaces() {
+  try {
+    const data = await confluence(route`/wiki/api/v2/spaces?type=${'global'}&status=${'current'}&limit=${50}&sort=${'name'}`);
+    return { spaces: (data?.results || []).map((sp) => ({ id: sp.id, key: sp.key, name: sp.name, homepageId: sp.homepageId })) };
+  } catch (err) {
+    console.error('listSpaces failed', err.message);
+    return { spaces: [] };
+  }
+}
+
+export async function createProposal(spaceId, rawTitle) {
+  const title = proposalTitle(rawTitle);
+  if (!title) return { ok: false, error: 'Give the proposal a short title.' };
+  if (!/^\d+$/.test(String(spaceId || ''))) return { ok: false, error: 'Pick a space.' };
+  try {
+    const space = await confluence(route`/wiki/api/v2/spaces/${spaceId}`);
+    const created = await confluence(route`/wiki/api/v2/pages`, {
+      method: 'POST',
+      body: JSON.stringify({
+        spaceId: String(spaceId),
+        ...(space?.homepageId ? { parentId: space.homepageId } : {}),
+        status: 'current',
+        title,
+        body: { representation: 'storage', value: markdownToStorage(PROPOSAL_TEMPLATE) },
+      }),
+    });
+    return { ok: true, webui: created._links?.webui || '', base: siteBase(created._links) };
+  } catch (err) {
+    console.error('createProposal failed', err.message);
+    if (err.status === 400 || err.status === 409) return { ok: false, error: 'A page with that title already exists in this space.' };
+    if (err.status === 403) return { ok: false, error: 'You cannot add pages to that space.' };
+    return { ok: false, error: 'The proposal could not be created. Try again in a minute.' };
   }
 }

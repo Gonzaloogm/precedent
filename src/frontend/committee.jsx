@@ -67,6 +67,19 @@ function Verdict({ record, proposalTitle, siteUrl, onCheck, onCreateGates, check
         </Text>
       </Stack>
 
+      {record.newComments > 0 && (
+        <SectionMessage appearance="warning" title={`${record.newComments} new comment${record.newComments > 1 ? 's' : ''} since this review`}>
+          <Stack space="space.100">
+            <Text>The team added objections after the verdict. Re-run the review so the committee answers them.</Text>
+            <Box>
+              <Button onClick={() => askAgent('Re-run the review: answer the new comments on this page.')}>
+                Re-run the review
+              </Button>
+            </Box>
+          </Stack>
+        </SectionMessage>
+      )}
+
       {record.axes?.length > 0 && (
         <Stack space="space.100">
           <Heading as="h4">Committee score</Heading>
