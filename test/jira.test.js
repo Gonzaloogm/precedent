@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseStories, pickIssueTypes, textToAdf, isValidProjectKey, MAX_STORIES } from '../src/lib/jira.js';
+import { parseStories, pickIssueTypes, textToAdf, isValidProjectKey, adfToText, MAX_STORIES } from '../src/lib/jira.js';
 
 test('parseStories reads bullets and numbered lines with optional details', () => {
   assert.deepEqual(parseStories('Intro\n- **Concierge test** | 2 clinics, 30 days\n2. Price model\n\n* A | b | c'), [
@@ -65,4 +65,11 @@ test('isValidProjectKey', () => {
   assert.equal(isValidProjectKey('SFD'), true);
   assert.equal(isValidProjectKey('sfd'), false);
   assert.equal(isValidProjectKey('X" OR 1=1'), false);
+});
+
+test('adfToText flattens and caps ADF', () => {
+  const doc = textToAdf('Outcome: **cancelled**\n- 11% opt-in\n\nSee the retro');
+  assert.equal(adfToText(doc), 'Outcome: cancelled\n11% opt-in\nSee the retro');
+  assert.equal(adfToText(doc, 10), 'Outcome: c…');
+  assert.equal(adfToText(null), '');
 });

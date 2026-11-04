@@ -52,6 +52,22 @@ modules:
         - list-jira-projects
         - create-jira-epic
 
+  scheduledTrigger:
+    - key: daily-gate-check
+      function: gateCheck
+      interval: day
+
+  confluence:contentBylineItem:
+    - key: committee-byline
+      title: SprintFounders
+      tooltip: Committee verdict for this proposal
+      render: native
+      resource: committee-ui
+      viewportSize: medium
+      contentPropertyKey: sprintfounders-byline-7f3c2a
+      resolver:
+        function: committeeResolver
+
   confluence:globalPage:
     - key: get-started
       title: SprintFounders
@@ -185,6 +201,31 @@ modules:
           type: string
           required: false
           description: The proposal page ID. Leave empty to use the page the user is on.
+        verdict:
+          title: Verdict
+          type: string
+          required: false
+          description: Devil's Advocate only. GO, PIVOT or STOP.
+        committeeScore:
+          title: Committee score
+          type: string
+          required: false
+          description: Devil's Advocate only. Total score out of 100.
+        axisScores:
+          title: Axis scores
+          type: string
+          required: false
+          description: Devil's Advocate only. "Axis=score" pairs separated by ";", each out of 25.
+        objectionRulings:
+          title: Objection rulings
+          type: string
+          required: false
+          description: Devil's Advocate only. One line per objection, "- upheld | summary".
+        stageGates:
+          title: Stage gates
+          type: string
+          required: false
+          description: Devil's Advocate only. One line per gate, "- 30 | measurable signal".
 
   function:
     - key: getProposal
@@ -201,12 +242,18 @@ modules:
       handler: index.createJiraEpic
     - key: getStartedResolver
       handler: getStarted.handler
+    - key: committeeResolver
+      handler: committee.handler
+    - key: gateCheck
+      handler: gateCheck.run
 
 resources:
   - key: agent-resources
     path: resource/agent
   - key: get-started-ui
     path: src/frontend/getStarted.jsx
+  - key: committee-ui
+    path: src/frontend/committee.jsx
 
 permissions:
   scopes:

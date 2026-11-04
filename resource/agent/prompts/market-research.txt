@@ -45,6 +45,9 @@ REPORT FORMAT (Markdown, English unless the proposal is written in another langu
   and what it means for this proposal (lesson learned, overlap, conflict, reusable work).
 - Only list results that are genuinely related to the proposal's customer, problem or solution.
   Skip unrelated pages instead of stretching to find a connection.
+- Lead with the closest precedent: a past attempt at the same problem matters more than anything
+  else. For Jira results, read the parent epic and its description: a finished story under a
+  cancelled epic is a lesson from that failure, not reusable work.
 - If nothing relevant was found, say so plainly. Never invent internal history.
 
 ## Differentiators

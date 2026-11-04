@@ -22,7 +22,8 @@ export function buildCql(keywords, excludePageId) {
   if (!keywords.length) return null;
   const terms = keywords.map((k) => `text ~ "${k}"`).join(' OR ');
   const exclude = isValidId(excludePageId) ? ` AND id != ${excludePageId}` : '';
-  return `type = page AND (${terms})${exclude} ORDER BY lastmodified DESC`;
+  // No ORDER BY: Confluence then ranks by relevance, so the closest precedent comes first.
+  return `type = page AND (${terms})${exclude}`;
 }
 
 export function buildJql(keywords) {

@@ -2,9 +2,11 @@ import api, { route } from '@forge/api';
 import { storageToText, markdownToStorage, aiNoticePanel, stripLeadingTitle } from './lib/format.js';
 import { sanitizeKeywords, isValidId, buildCql, buildJql } from './lib/search.js';
 import { collectObjections, isReportTitle } from './lib/review.js';
-import { parseStories, pickIssueTypes, textToAdf, isValidProjectKey } from './lib/jira.js';
+import { parseStories, pickIssueTypes, textToAdf, isValidProjectKey, adfToText } from './lib/jira.js';
+import { buildVerdictRecord, bylineFor, VERDICT_PROPERTY, BYLINE_PROPERTY } from './lib/verdict.js';
+import { GATE_LABEL, gateSummary, pageLabel, dueDateFor } from './lib/gates.js';
 
-const MAX_RESULTS = 5;
+const MAX_RESULTS = 8;
 const MAX_REPORTS = 4;
 const MAX_REPORT_CHARS = 8000;
 
@@ -132,10 +134,12 @@ async function searchJira(keywords, siteUrl) {
     body: JSON.stringify({
       jql: buildJql(keywords),
       maxResults: MAX_RESULTS,
-      fields: ['summary', 'status', 'resolution', 'issuetype', 'updated'],
+      fields: ['summary', 'status', 'resolution', 'issuetype', 'updated', 'parent', 'description'],
     }),
   });
   const data = await readJson(response);
+  // Parent and description matter: a "done" story under a cancelled epic is evidence of a past
+  // failure, not reusable work, and the outcome is usually written in the epic description.
   return (data.issues || []).map((issue) => ({
     key: issue.key,
     summary: issue.fields?.summary,
@@ -143,6 +147,10 @@ async function searchJira(keywords, siteUrl) {
     status: issue.fields?.status?.name,
     resolution: issue.fields?.resolution?.name || null,
     updated: issue.fields?.updated,
+    description: adfToText(issue.fields?.description, 400) || null,
+    parent: issue.fields?.parent
+      ? { key: issue.fields.parent.key, summary: issue.fields.parent.fields?.summary }
+      : null,
     url: siteUrl ? `${siteUrl}/browse/${issue.key}` : null,
   }));
 }
@@ -186,6 +194,38 @@ async function createChildPage(spaceId, parentId, title, storage) {
   });
 }
 
+// ---------- Content properties (structured verdict on the proposal) ----------
+
+async function getProperty(pageId, key) {
+  const data = await confluenceGet(route`/wiki/api/v2/pages/${pageId}/properties?key=${key}`);
+  return data?.results?.[0] || null;
+}
+
+async function setProperty(pageId, key, value) {
+  const existing = await getProperty(pageId, key);
+  const response = existing
+    ? await api.asUser().requestConfluence(route`/wiki/api/v2/pages/${pageId}/properties/${existing.id}`, {
+        method: 'PUT',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value, version: { number: (existing.version?.number || 1) + 1 } }),
+      })
+    : await api.asUser().requestConfluence(route`/wiki/api/v2/pages/${pageId}/properties`, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value }),
+      });
+  return readJson(response);
+}
+
+export async function readVerdict(pageId) {
+  return (await getProperty(pageId, VERDICT_PROPERTY))?.value || null;
+}
+
+async function writeVerdict(pageId, record) {
+  await setProperty(pageId, VERDICT_PROPERTY, record);
+  await setProperty(pageId, BYLINE_PROPERTY, bylineFor(record));
+}
+
 export async function saveReport(payload) {
   const pageId = resolvePageId(payload);
   if (!pageId) return { error: 'Open the proposal page in Confluence, or provide its page ID.' };
@@ -205,7 +245,21 @@ export async function saveReport(payload) {
       response = await createChildPage(parent.spaceId, parent.id, `${baseTitle} (${stamp})`, storage);
     }
     const page = await readJson(response);
-    return { saved: true, title: page.title, url: (page._links?.base || '') + (page._links?.webui || '') };
+    const url = (page._links?.base || '') + (page._links?.webui || '');
+
+    // The Devil's Advocate also sends a structured verdict: keep it on the proposal for the panel.
+    const record = buildVerdictRecord(payload, { title: page.title, url });
+    let warning;
+    if (record) {
+      try {
+        const previous = await readVerdict(parent.id);
+        await writeVerdict(parent.id, { ...record, epic: previous?.epic || null });
+      } catch (err) {
+        console.error('saving verdict failed', err.message);
+        warning = 'The review was saved, but the committee panel could not be updated.';
+      }
+    }
+    return { saved: true, title: page.title, url, ...(record ? { verdict: record.verdict } : {}), ...(warning ? { warning } : {}) };
   } catch (err) {
     console.error('saveReport failed', err.message);
     return { error: `Could not save the report: ${err.message}` };
@@ -245,6 +299,67 @@ async function proposalLink(payload) {
     console.error('proposalLink failed', err.message);
     return null;
   }
+}
+
+// Turns the verdict's stage gates into work items under the epic (due dates included) and records
+// the epic and gate keys on the proposal's verdict, so the panel and the daily check can use them.
+async function attachEpicAndGates(payload, projectKey, epic, gateTypeId) {
+  try {
+    const pageId = resolvePageId(payload);
+    if (!pageId) return [];
+    let page = await fetchPage(pageId);
+    if (isReportTitle(page.title) && isValidId(page.parentId)) page = await fetchPage(page.parentId);
+    const record = await readVerdict(page.id);
+    if (!record) return [];
+
+    let gates = record.gates || [];
+    if (gateTypeId && gates.length && !gates.some((g) => g.key)) {
+      const issueUpdates = (withDueDate) =>
+        gates.map((g) => ({
+          fields: {
+            project: { key: projectKey },
+            issuetype: { id: gateTypeId },
+            parent: { key: epic.key },
+            summary: gateSummary(g),
+            labels: [GATE_LABEL, pageLabel(page.id)],
+            description: textToAdf(
+              `Stop criterion from the committee review. If this is not done by the due date, the committee recommends re-running the review before more budget is spent.\n\nDecision record: [${page.title}](${(page._links?.base || '') + (page._links?.webui || '')})`
+            ),
+            ...(withDueDate ? { duedate: dueDateFor(record.reviewedAt, g.days) } : {}),
+          },
+        }));
+      let bulk = await jiraRequest(route`/rest/api/3/issue/bulk`, {
+        method: 'POST',
+        body: JSON.stringify({ issueUpdates: issueUpdates(true) }),
+      }).catch(() => null);
+      if (!bulk?.issues?.length) {
+        // Some projects do not show the due date field on their create screen.
+        bulk = await jiraRequest(route`/rest/api/3/issue/bulk`, {
+          method: 'POST',
+          body: JSON.stringify({ issueUpdates: issueUpdates(false) }),
+        });
+      }
+      const keys = (bulk?.issues || []).map((i) => i.key);
+      gates = gates.map((g, i) => ({ ...g, key: keys[i] || null, due: dueDateFor(record.reviewedAt, g.days) }));
+    }
+    await writeVerdict(page.id, { ...record, epic, gates });
+    return gates.filter((g) => g.key);
+  } catch (err) {
+    console.error('attachEpicAndGates failed', err.message);
+    return [];
+  }
+}
+
+/** Gates for a proposal whose epic already exists (e.g. created before gates were tracked). */
+export async function createGatesForPage(pageId) {
+  const record = await readVerdict(pageId);
+  const epicKey = record?.epic?.key;
+  if (!epicKey) return { error: 'Create the Jira epic first.' };
+  const projectKey = epicKey.split('-')[0];
+  const meta = await jiraRequest(route`/rest/api/3/issue/createmeta/${projectKey}/issuetypes`);
+  const { storyTypeId } = pickIssueTypes(meta.issueTypes || meta.createMetaIssueType);
+  const gates = await attachEpicAndGates({ pageId }, projectKey, record.epic, storyTypeId);
+  return { created: gates.length };
 }
 
 // Guards against a second confirmation creating the same epic twice.
@@ -317,9 +432,11 @@ export async function createJiraEpic(payload) {
       failed = (bulk.errors || []).length;
     }
 
+    const gates = await attachEpicAndGates(payload, projectKey, { key: epic.key, url: browse(epic.key) }, storyTypeId);
     return {
       epic: { key: epic.key, url: browse(epic.key) },
       stories: created,
+      stageGates: gates.map((g) => ({ key: g.key, url: browse(g.key), due: g.due, criterion: g.criterion })),
       ...(failed ? { warning: `${failed} stories could not be created.` } : {}),
     };
   } catch (err) {

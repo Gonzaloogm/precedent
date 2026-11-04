@@ -65,3 +65,17 @@ export function textToAdf(text) {
   }
   return { type: 'doc', version: 1, content };
 }
+
+/** Plain text from an ADF document (Jira descriptions), capped for agent context. */
+export function adfToText(doc, max = 400) {
+  const out = [];
+  const walk = (node) => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'text' && node.text) out.push(node.text);
+    if (Array.isArray(node.content)) node.content.forEach(walk);
+    if (['paragraph', 'listItem', 'heading'].includes(node.type)) out.push('\n');
+  };
+  walk(doc);
+  const text = out.join('').replace(/\n{2,}/g, '\n').trim();
+  return text.length > max ? text.slice(0, max).trimEnd() + '…' : text;
+}

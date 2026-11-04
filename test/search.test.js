@@ -20,11 +20,11 @@ test('sanitizeKeywords keeps accented words', () => {
 test('buildCql excludes only numeric page ids', () => {
   assert.equal(
     buildCql(['dog', 'app'], '123'),
-    'type = page AND (text ~ "dog" OR text ~ "app") AND id != 123 ORDER BY lastmodified DESC'
+    'type = page AND (text ~ "dog" OR text ~ "app") AND id != 123'
   );
   assert.equal(
     buildCql(['dog'], '1 OR 1=1'),
-    'type = page AND (text ~ "dog") ORDER BY lastmodified DESC'
+    'type = page AND (text ~ "dog")'
   );
   assert.equal(buildCql([], '1'), null);
 });
