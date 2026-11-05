@@ -246,7 +246,7 @@ export async function saveReport(payload) {
     // Reports always hang off the proposal, even when the run started from another report.
     let parent = await fetchPage(pageId);
     if (isReportTitle(parent.title) && isValidId(parent.parentId)) parent = await fetchPage(parent.parentId);
-    const baseTitle = (payload.reportTitle || `SprintFounders report - ${parent.title}`).slice(0, 200);
+    const baseTitle = (payload.reportTitle || `Precedent report - ${parent.title}`).slice(0, 200);
     const storage = aiNoticePanel() + markdownToStorage(stripLeadingTitle(payload.reportMarkdown));
 
     let response = await createChildPage(parent.spaceId, parent.id, baseTitle, storage);
@@ -409,7 +409,7 @@ export async function createJiraEpic(payload) {
     const description =
       String(payload?.epicDescription || '') +
       (source ? `\n\nDecision record: [${source.title}](${source.url})` : '') +
-      '\n\nCreated by SprintFounders after human review.';
+      '\n\nCreated by Precedent after human review.';
     const epic = await jiraRequest(route`/rest/api/3/issue`, {
       method: 'POST',
       body: JSON.stringify({

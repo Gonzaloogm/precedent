@@ -15,7 +15,7 @@ import ForgeReconciler, {
 } from '@forge/react';
 import { invoke, rovo, view } from '@forge/bridge';
 
-const AGENT = { type: 'forge', agentKey: 'devils-advocate-agent', agentName: "SF Devil's Advocate" };
+const AGENT = { type: 'forge', agentKey: 'devils-advocate-agent', agentName: "Precedent Devil's Advocate" };
 const VERDICT_LOOK = { GO: 'success', PIVOT: 'moved', STOP: 'removed' };
 const GATE_LOOK = { done: 'success', missed: 'removed', open: 'default' };
 const RULING_LOOK = { upheld: 'success', 'partly upheld': 'moved', rejected: 'default', noted: 'default' };
@@ -39,12 +39,12 @@ function Empty() {
     <Stack space="space.150">
       <Heading as="h3">No committee verdict yet</Heading>
       <Text>
-        Ask SF Market Research to stress-test this proposal, let the team object with page comments, then ask SF
-        Devil's Advocate for a verdict. Once you save the review, the verdict shows up here.
+        Ask Precedent Market Research to stress-test this proposal, let the team object with page comments, then ask
+        Precedent Devil's Advocate for a verdict. Once you save the review, the verdict shows up here.
       </Text>
       <Box>
         <Button appearance="primary" onClick={() => askAgent('Should we fund the initiative on this page?')}>
-          Ask SF Devil's Advocate
+          Ask Precedent Devil's Advocate
         </Button>
       </Box>
     </Stack>

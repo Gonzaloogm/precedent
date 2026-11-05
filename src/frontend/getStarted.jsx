@@ -85,7 +85,7 @@ function App() {
     const url = `${r.base || siteUrl}/wiki${r.webui}`;
     setProposalResult({
       title: 'Proposal created',
-      lines: ['Fill in each section, then ask SF Market Research to stress-test it.'],
+      lines: ['Fill in each section, then ask Precedent Market Research to stress-test it.'],
       links: [{ href: url, label: 'Open the new proposal' }],
     });
     setTitle('');
@@ -112,7 +112,7 @@ function App() {
       title: 'Brightpath Clinics is ready in Confluence',
       lines: [
         pages.pagesCreated ? `${pages.pagesCreated} pages created.` : 'All pages were already there.',
-        'Next: open the AI scheduling proposal and ask SF Market Research to stress-test it.',
+        'Next: open the AI scheduling proposal and ask Precedent Market Research to stress-test it.',
       ],
       links: [
         ...(pages.proposalUrl ? [{ href: pages.proposalUrl, label: 'Open the AI scheduling proposal' }] : []),
@@ -134,7 +134,7 @@ function App() {
       created += epic.issuesCreated || 0;
     }
     setStep(null);
-    const jql = encodeURIComponent(`labels = sprintfounders-sample ORDER BY created ASC`);
+    const jql = encodeURIComponent(`labels = precedent-sample ORDER BY created ASC`);
     setJiraResult({
       title: errors.length ? 'Some work items could not be created' : `Past initiatives added to ${project.value}`,
       error: errors[0],
@@ -147,7 +147,7 @@ function App() {
     <Stack space="space.300">
       <Heading as="h2">A skeptical committee that remembers what your company already tried</Heading>
       <Text>
-        SprintFounders reviews new initiatives and budget requests before anyone spends a cent. Its Rovo agents read the
+        Precedent reviews new initiatives and budget requests before anyone spends a cent. Its Rovo agents read the
         proposal, check it against your company's own history in Confluence and Jira, answer the team's objections and
         turn an approved plan into a Jira epic.
       </Text>
@@ -243,13 +243,13 @@ function App() {
               <Text>Open a proposal page and open Rovo chat.</Text>
             </ListItem>
             <ListItem>
-              <Text>SF Market Research: customer, market, risks and what your company already tried.</Text>
+              <Text>Precedent Market Research: customer, market, risks and what your company already tried.</Text>
             </ListItem>
             <ListItem>
               <Text>Challenge any assumption with a page comment.</Text>
             </ListItem>
             <ListItem>
-              <Text>SF Devil's Advocate: rules on every objection and gives GO, PIVOT or STOP.</Text>
+              <Text>Precedent Devil's Advocate: rules on every objection and gives GO, PIVOT or STOP.</Text>
             </ListItem>
             <ListItem>
               <Text>On GO or PIVOT, approve the draft and it creates the Jira epic and stories.</Text>

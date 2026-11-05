@@ -84,7 +84,7 @@ async function writeHomepage(space) {
       status: 'current',
       title: SAMPLE_SPACE.name,
       body: { representation: 'storage', value: markdownToStorage(SAMPLE_HOME.markdown) },
-      version: { number: (home.version?.number || 1) + 1, message: 'SprintFounders sample company' },
+      version: { number: (home.version?.number || 1) + 1, message: 'Precedent sample company' },
     }),
   });
   return true;

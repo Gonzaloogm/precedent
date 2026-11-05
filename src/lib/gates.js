@@ -1,9 +1,9 @@
 // Stage gates: the Devil's Advocate's 30/60/90-day stop criteria become Jira work items with a
 // due date, and a daily check flags the ones that pass their date without being done.
 
-export const GATE_LABEL = 'sprintfounders-gate';
-export const OVERDUE_LABEL = 'sprintfounders-gate-missed';
-const PAGE_LABEL_PREFIX = 'sprintfounders-page-';
+export const GATE_LABEL = 'precedent-gate';
+export const OVERDUE_LABEL = 'precedent-gate-missed';
+const PAGE_LABEL_PREFIX = 'precedent-page-';
 
 export function dueDateFor(reviewedAt, days) {
   const d = new Date(reviewedAt);
@@ -45,6 +45,6 @@ export function missedGateMessage(gate, proposal) {
   return (
     `Stage gate missed: "${gate.summary}" was due on ${gate.duedate} and is not done.\n\n` +
     `The committee recommends re-running the review on${link} before more budget is spent.\n\n` +
-    'Posted by SprintFounders.'
+    'Posted by Precedent.'
   );
 }

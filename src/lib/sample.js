@@ -5,24 +5,24 @@
 export const SAMPLE_SPACE = {
   key: 'BRIGHTPATH',
   name: 'Brightpath Clinics (sample)',
-  description: 'Fictional company created by SprintFounders to try the precedent check. Safe to delete.',
+  description: 'Fictional company created by Precedent to try the precedent check. Safe to delete.',
 };
 
-export const SAMPLE_LABEL = 'sprintfounders-sample';
+export const SAMPLE_LABEL = 'precedent-sample';
 
 // Pages are Markdown, converted with markdownToStorage. Order matters: history first, proposals last.
 // Written over the space homepage. The marker phrase tells a later run it is already there.
 export const SAMPLE_HOME_MARKER = 'fictional company';
 export const SAMPLE_HOME = {
-    markdown: `This space is a **fictional company** created by SprintFounders so you can try it without real data.
+    markdown: `This space is a **fictional company** created by Precedent so you can try it without real data.
 
 Brightpath Clinics runs 42 physiotherapy and dental clinics in Spain and Portugal, with about 600 staff. Every new initiative or budget request is written as a proposal page and reviewed before it gets money, people or time.
 
 ## Try it in three minutes
 1. Open **Proposal: AI scheduling assistant for clinics**.
-2. Open Rovo chat, pick **SF Market Research** and ask it to stress-test the proposal. It should find the cancelled SMS reminders pilot below.
-3. Read the two objections the team left as comments, then ask **SF Devil's Advocate** whether to fund it.
-4. If the verdict is GO or PIVOT, let it draft the Jira epic. The company's past initiatives are in Jira too, labelled "sprintfounders-sample".
+2. Open Rovo chat, pick **Precedent Market Research** and ask it to stress-test the proposal. It should find the cancelled SMS reminders pilot below.
+3. Read the two objections the team left as comments, then ask **Precedent Devil's Advocate** whether to fund it.
+4. If the verdict is GO or PIVOT, let it draft the Jira epic. The company's past initiatives are in Jira too, labelled "precedent-sample".
 
 ## Company history in this space
 - 2025 Retro: Patient SMS reminders pilot (cancelled)

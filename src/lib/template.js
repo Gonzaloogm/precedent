@@ -22,7 +22,7 @@ The beliefs that must be true for this to work. The committee will challenge the
 What could stop it: integrations, regulation, people, cost.
 
 ## What we already know
-Links to earlier pages, retros or Jira work on this topic, if you know any. SprintFounders also searches for them.`;
+Links to earlier pages, retros or Jira work on this topic, if you know any. Precedent also searches for them.`;
 
 export function proposalTitle(raw) {
   const title = String(raw || '').replace(/\s+/g, ' ').trim().slice(0, 180);

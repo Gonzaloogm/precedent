@@ -1,8 +1,8 @@
 {
-  "name": "sprintfounders",
+  "name": "precedent",
   "version": "0.1.0",
   "private": true,
-  "description": "SprintFounders: skeptical AI agents that stress-test initiatives inside Confluence and Jira",
+  "description": "Precedent: skeptical AI agents that stress-test initiatives inside Confluence and Jira",
   "license": "MIT",
   "scripts": {
     "test": "node --test test/*.test.js",

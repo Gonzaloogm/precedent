@@ -2,9 +2,9 @@
 // and the committee panel can show it without re-reading the review. The agent sends plain
 // strings; everything here is parsed defensively because it comes from the LLM.
 
-export const VERDICT_PROPERTY = 'sprintfounders-verdict';
+export const VERDICT_PROPERTY = 'precedent-verdict';
 // Confluence reads the byline title/tooltip straight from this property (contentPropertyKey).
-export const BYLINE_PROPERTY = 'sprintfounders-byline-7f3c2a';
+export const BYLINE_PROPERTY = 'precedent-byline-7f3c2a';
 
 const VERDICTS = ['GO', 'PIVOT', 'STOP'];
 const RULINGS = ['upheld', 'partly upheld', 'rejected'];
@@ -86,7 +86,7 @@ export function buildVerdictRecord(payload, review, now = new Date()) {
 }
 
 export function bylineFor(record) {
-  if (!record?.verdict) return { title: 'SprintFounders', tooltip: 'Not reviewed yet' };
+  if (!record?.verdict) return { title: 'Precedent', tooltip: 'Not reviewed yet' };
   const score = record.score === null || record.score === undefined ? '' : ` · ${record.score}`;
   const upheld = (record.objections || []).filter((o) => o.ruling !== 'rejected').length;
   const fresh = record.newComments > 0 ? ` · ${record.newComments} new` : '';

@@ -5,7 +5,7 @@ const MAX_COMMENT_CHARS = 600;
 export const MAX_OBJECTIONS = 20;
 
 // Titles of the pages our agents save, so a run started from a report finds its proposal.
-const REPORT_TITLE = /^(market research|devil's advocate review|cfo review|sprintfounders report)\b/i;
+const REPORT_TITLE = /^(market research|devil's advocate review|cfo review|precedent report)\b/i;
 
 export function isReportTitle(title) {
   return REPORT_TITLE.test(String(title || '').trim());

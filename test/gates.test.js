@@ -19,14 +19,14 @@ test('dueDateFor adds days to the review date', () => {
 test('gate summary and page label round-trip', () => {
   assert.equal(gateSummary({ days: 30, criterion: '3 clinics sign up' }), 'Stage gate (day 30): 3 clinics sign up');
   assert.equal(pageIdFromLabels(['x', pageLabel('4718593')]), '4718593');
-  assert.equal(pageIdFromLabels(['sprintfounders-page-abc']), null);
+  assert.equal(pageIdFromLabels(['precedent-page-abc']), null);
   assert.equal(pageIdFromLabels(undefined), null);
 });
 
 test('overdue JQL skips done and already flagged gates', () => {
   const jql = overdueGatesJql();
-  assert.match(jql, /labels = sprintfounders-gate/);
-  assert.match(jql, /labels != sprintfounders-gate-missed/);
+  assert.match(jql, /labels = precedent-gate/);
+  assert.match(jql, /labels != precedent-gate-missed/);
   assert.match(jql, /statusCategory != Done/);
 });
 

@@ -12,7 +12,7 @@ app:
 modules:
   rovo:agent:
     - key: market-research-agent
-      name: SF Market Research
+      name: Precedent Market Research
       description: >-
         Stress-tests the initiative proposal on the current Confluence page:
         ideal customer, market size, competitors, risks and a viability score,
@@ -32,9 +32,9 @@ modules:
         - save-report
 
     - key: devils-advocate-agent
-      name: SF Devil's Advocate
+      name: Precedent Devil's Advocate
       description: >-
-        Plays the funding committee: reads the proposal, the earlier SprintFounders reports and
+        Plays the funding committee: reads the proposal, the earlier Precedent reports and
         the team's comments, answers every objection and gives a go / pivot / kill verdict.
       prompt: resource:agent-resources;prompts/devils-advocate.txt
       conversationStarters:
@@ -65,18 +65,18 @@ modules:
 
   confluence:contentBylineItem:
     - key: committee-byline
-      title: SprintFounders
+      title: Precedent
       tooltip: Committee verdict for this proposal
       render: native
       resource: committee-ui
       viewportSize: medium
-      contentPropertyKey: sprintfounders-byline-7f3c2a
+      contentPropertyKey: precedent-byline-7f3c2a
       resolver:
         function: committeeResolver
 
   confluence:globalPage:
     - key: get-started
-      title: SprintFounders
+      title: Precedent
       route: get-started
       render: native
       resource: get-started-ui
@@ -89,7 +89,7 @@ modules:
       function: getReviewContext
       actionVerb: GET
       description: >-
-        Reads the proposal, the SprintFounders reports saved under it, and the team's open page
+        Reads the proposal, the Precedent reports saved under it, and the team's open page
         comments (objections). Works from the proposal or from any of its reports. Call this first.
       inputs:
         pageId:

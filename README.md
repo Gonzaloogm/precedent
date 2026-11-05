@@ -1,10 +1,10 @@
-# SprintFounders
+# Precedent
 
 **A skeptical investment committee inside Confluence and Jira that remembers what your company already tried.**
 
 Teams pitch new initiatives and budget requests on Confluence pages every week. The committee that approves
 them rarely remembers that a similar pilot was cancelled two years ago, or that the last EHR integration cost
-three times the estimate. SprintFounders brings that memory into the review: its Rovo agents read the proposal,
+three times the estimate. Precedent brings that memory into the review: its Rovo agents read the proposal,
 search the company's own Confluence pages and Jira work for precedents, rule on every objection the team raises,
 and give a clear GO, PIVOT or STOP with the conditions to keep going. When a plan is approved, they turn it into a
 Jira epic with stage gates that are checked every day.
@@ -15,10 +15,10 @@ Built on Atlassian Forge for [Codegeist 2026](https://codegeist.devpost.com/), c
 
 1. **Write a proposal.** The *Get started* page creates a page from a template with the sections the committee
    reads: problem, solution, customer, success metrics, key assumptions and risks.
-2. **SF Market Research** (Rovo agent) reads the page and writes a market report. It leads with the closest
+2. **Precedent Market Research** (Rovo agent) reads the page and writes a market report. It leads with the closest
    precedent from your own history, e.g. *"a 2025 SMS reminder pilot was cancelled after reaching 11% opt-in"*.
 3. **The team objects** with ordinary page comments.
-4. **SF Devil's Advocate** (Rovo agent) rules on every objection (upheld, partly upheld, rejected), estimates the
+4. **Precedent Devil's Advocate** (Rovo agent) rules on every objection (upheld, partly upheld, rejected), estimates the
    economics with the company's own budgeting rules, scores four axes and gives GO, PIVOT or STOP.
 5. **The verdict stays on the page.** A byline badge shows `Committee: PIVOT · 55`; clicking it opens the
    committee panel with the scores, the rulings and the stage gates.
@@ -33,17 +33,17 @@ Nothing is saved or created without the user's confirmation in chat.
 ## Try it
 
 1. Install the app on a Confluence and Jira site (see *Install* below).
-2. Open **Apps → SprintFounders** in Confluence and click **Load sample company**. It creates Brightpath Clinics,
+2. Open **Apps → Precedent** in Confluence and click **Load sample company**. It creates Brightpath Clinics,
    a fictional clinic network with past retros, a buy-vs-build decision and a proposal for an AI scheduling
    assistant. Optionally add its past initiatives to a Jira project you choose.
-3. Open *Proposal: AI scheduling assistant for clinics*, open Rovo chat and ask **SF Market Research** to
-   stress-test it. Then ask **SF Devil's Advocate** for the verdict and save it.
+3. Open *Proposal: AI scheduling assistant for clinics*, open Rovo chat and ask **Precedent Market Research** to
+   stress-test it. Then ask **Precedent Devil's Advocate** for the verdict and save it.
 
 ## Forge modules
 
 | Module | Purpose |
 |---|---|
-| `rovo:agent` × 2 | SF Market Research and SF Devil's Advocate |
+| `rovo:agent` × 2 | Precedent Market Research and Precedent Devil's Advocate |
 | `action` × 6 | Read the proposal, search precedents (CQL + JQL), read the review context, save reports, list Jira projects, create the epic and stories |
 | `confluence:contentBylineItem` | Verdict badge on the proposal, read from a content property |
 | `confluence:globalPage` | *Get started* page: sample company and proposal template (UI Kit) |

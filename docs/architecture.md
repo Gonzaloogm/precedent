@@ -1,12 +1,12 @@
 # Architecture
 
-SprintFounders is a Forge app with no external backend. Rovo agents do the reasoning; Forge functions read and
+Precedent is a Forge app with no external backend. Rovo agents do the reasoning; Forge functions read and
 write Confluence and Jira; everything the app remembers is stored in the customer's own site.
 
 ```mermaid
 flowchart LR
-  U[User in Rovo chat] --> MR[SF Market Research]
-  U --> DA[SF Devil's Advocate]
+  U[User in Rovo chat] --> MR[Precedent Market Research]
+  U --> DA[Precedent Devil's Advocate]
   MR & DA --> A[Rovo actions<br/>src/index.js]
   A -->|asUser| C[(Confluence<br/>pages, comments,<br/>content properties)]
   A -->|asUser| J[(Jira<br/>epic, stories,<br/>stage gates)]
@@ -24,15 +24,15 @@ flowchart LR
    parent epic and description, so a finished story under a cancelled epic is read as a lesson, not reusable work.
 3. `get-review-context` gives Devil's Advocate the proposal, the Market Research report and the page comments.
 4. `save-report` writes the review as a child page and, for a verdict, stores a structured record on the
-   proposal as the content property `sprintfounders-verdict`: verdict, score, axis scores, objection rulings and
+   proposal as the content property `precedent-verdict`: verdict, score, axis scores, objection rulings and
    stage gates. The byline reads its title from a second property, so the badge needs no function call.
 5. `create-jira-epic` creates the epic and stories after the user confirms, then the stage gates as work items
-   with due dates and the labels `sprintfounders-gate` and `sprintfounders-page-<id>`.
+   with due dates and the labels `precedent-gate` and `precedent-page-<id>`.
 
 ## Watching after the verdict
 
 - **Daily gate check** (`src/gateCheck.js`): a JQL query finds gate items past their due date and not done. Each
-  one gets a comment in Jira, a footer comment on the proposal and the label `sprintfounders-gate-missed`.
+  one gets a comment in Jira, a footer comment on the proposal and the label `precedent-gate-missed`.
 - **New comments** (`src/commentEvents.js`): a comment created after the review increments a counter in the
   verdict record; the badge shows `· N new` until the review is re-run. Comments made by the app are ignored.
 

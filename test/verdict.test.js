@@ -75,7 +75,7 @@ test('buildVerdictRecord and bylineFor', () => {
     title: 'Committee: PIVOT · 52',
     tooltip: '2 objections answered, 1 upheld. Click for details.',
   });
-  assert.equal(bylineFor(null).title, 'SprintFounders');
+  assert.equal(bylineFor(null).title, 'Precedent');
 });
 
 test('withNewComment counts only comments after the review', () => {
