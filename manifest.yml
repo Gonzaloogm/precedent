@@ -74,6 +74,15 @@ modules:
       resolver:
         function: committeeResolver
 
+  jira:issueContext:
+    - key: committee-issue-context
+      title: Precedent committee
+      label: Committee decision
+      render: native
+      resource: committee-ui
+      resolver:
+        function: committeeResolver
+
   confluence:globalPage:
     - key: get-started
       title: Precedent

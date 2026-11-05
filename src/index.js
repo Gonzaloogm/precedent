@@ -326,7 +326,7 @@ async function proposalLink(payload) {
     let page = await fetchPage(pageId);
     if (isReportTitle(page.title) && isValidId(page.parentId)) page = await fetchPage(page.parentId);
     const base = page._links?.base || '';
-    return { title: page.title, url: base + (page._links?.webui || ''), siteUrl: base.replace(/\/wiki$/, '') };
+    return { id: String(page.id), title: page.title, url: base + (page._links?.webui || ''), siteUrl: base.replace(/\/wiki$/, '') };
   } catch (err) {
     console.error('proposalLink failed', err.message);
     return null;
@@ -439,6 +439,8 @@ export async function createJiraEpic(payload) {
           issuetype: { id: epicTypeId },
           summary,
           description: textToAdf(description),
+          // Links the epic back to its proposal, for the committee panel in Jira.
+          ...(source?.id ? { labels: [pageLabel(source.id)] } : {}),
         },
       }),
     });

@@ -48,6 +48,7 @@ Nothing is saved or created without the user's confirmation in chat.
 | `rovo:agent` × 2 | Precedent Market Research and Precedent Devil's Advocate |
 | `action` × 6 | Read the proposal, search precedents (CQL + JQL), read the review context, save reports, list Jira projects, create the epic and stories |
 | `confluence:contentBylineItem` | Verdict badge on the proposal, read from a content property |
+| `jira:issueContext` | The same committee panel on the epic, its stories and gates: why the work exists and whether it keeps its budget |
 | `confluence:globalPage` | *Get started* page: sample company and proposal template (UI Kit) |
 | `scheduledTrigger` | Daily check of missed stage gates |
 | `trigger` (`avi:confluence:created:comment`) | Marks the verdict out of date when new objections arrive |

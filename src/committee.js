@@ -1,11 +1,12 @@
-// Resolver for the committee panel (byline item on every Confluence page).
+// Resolver for the committee panel: the byline item on Confluence pages and the issue context
+// panel in Jira. Both resolve to the proposal page that holds the verdict.
 import Resolver from '@forge/resolver';
 import api, { route } from '@forge/api';
 import { readVerdict, createGatesForPage, precedentPages } from './index.js';
 import { peopleWhoWereThere } from './graph.js';
 import { isReportTitle } from './lib/review.js';
 import { isValidId } from './lib/search.js';
-import { gateState } from './lib/gates.js';
+import { gateState, pageIdFromLabels, GATE_LABEL } from './lib/gates.js';
 import { checkMissedGates } from './gateCheck.js';
 
 // Live status of the gate work items, so closing a gate in Jira shows up here immediately.
@@ -31,22 +32,74 @@ async function page(pageId) {
   return response.ok ? response.json() : null;
 }
 
+async function issue(key) {
+  const response = await api.asUser().requestJira(route`/rest/api/3/issue/${key}?fields=labels,parent`, {
+    headers: { Accept: 'application/json' },
+  });
+  return response.ok ? response.json() : null;
+}
+
+// Gates carry the proposal page in a label; epics created before the epic label existed are
+// found through their gate children.
+async function pageIdFromGateChildren(key) {
+  const response = await api.asUser().requestJira(route`/rest/api/3/search/jql`, {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jql: `parent = ${key} AND labels = "${GATE_LABEL}"`, maxResults: 1, fields: ['labels'] }),
+  });
+  if (!response.ok) return null;
+  const data = await response.json();
+  return pageIdFromLabels(data.issues?.[0]?.fields?.labels);
+}
+
+async function pageIdForIssue(key) {
+  if (!/^[A-Z][A-Z0-9_]+-\d+$/.test(String(key || ''))) return null;
+  const current = await issue(key);
+  if (!current) return null;
+  const parentKey = current.fields?.parent?.key;
+  const parent = parentKey ? await issue(parentKey) : null;
+  return (
+    pageIdFromLabels(current.fields?.labels) ||
+    pageIdFromLabels(parent?.fields?.labels) ||
+    (await pageIdFromGateChildren(key)) ||
+    (parentKey ? await pageIdFromGateChildren(parentKey) : null)
+  );
+}
+
+/** The proposal page behind this panel: the page itself, its parent for a report, or the Jira link. */
+async function proposalFor(context) {
+  const issueKey = context?.extension?.issue?.key;
+  if (issueKey) {
+    const pageId = await pageIdForIssue(issueKey);
+    return { inJira: true, proposal: pageId ? await page(pageId) : null };
+  }
+  const contentId = context?.extension?.content?.id;
+  if (!isValidId(contentId)) return { inJira: false, proposal: null };
+  let proposal = await page(contentId);
+  // On a report page, act on the proposal it belongs to.
+  if (proposal && !(await readVerdict(contentId)) && isReportTitle(proposal.title) && isValidId(proposal.parentId)) {
+    proposal = await page(proposal.parentId);
+  }
+  return { inJira: false, proposal };
+}
+
+const pageUrl = (p) => (p?._links?.base && p?._links?.webui ? p._links.base + p._links.webui : null);
+
 const resolver = new Resolver();
 
 resolver.define('getVerdict', async ({ context }) => {
-  const contentId = context?.extension?.content?.id;
-  if (!isValidId(contentId)) return { record: null };
   try {
-    let record = await readVerdict(contentId);
-    let proposal = await page(contentId);
-    // On a report page, show the verdict of the proposal it belongs to.
-    if (!record && proposal && isReportTitle(proposal.title) && isValidId(proposal.parentId)) {
-      record = await readVerdict(proposal.parentId);
-      proposal = await page(proposal.parentId);
-    }
+    const { inJira, proposal } = await proposalFor(context);
+    if (!proposal) return { record: null, inJira };
+    const record = await readVerdict(proposal.id);
     const statuses = record ? await gateStatuses(record.gates).catch(() => ({})) : {};
     const gates = (record?.gates || []).map((g) => ({ ...g, ...(g.key ? statuses[g.key] : {}) }));
-    return { record: record ? { ...record, gates } : null, proposalTitle: proposal?.title || null };
+    return {
+      record: record ? { ...record, gates } : null,
+      proposalTitle: proposal.title || null,
+      proposalUrl: pageUrl(proposal),
+      inJira,
+    };
   } catch (err) {
     console.error('getVerdict failed', err.message);
     return { record: null, error: 'The committee verdict could not be loaded.' };
@@ -54,16 +107,10 @@ resolver.define('getVerdict', async ({ context }) => {
 });
 
 resolver.define('createGates', async ({ context }) => {
-  const contentId = context?.extension?.content?.id;
-  if (!isValidId(contentId)) return { error: 'Open the proposal page.' };
   try {
-    // From a report page, act on the proposal it belongs to (same rule as getVerdict).
-    let pageId = contentId;
-    if (!(await readVerdict(contentId))) {
-      const current = await page(contentId);
-      if (current && isReportTitle(current.title) && isValidId(current.parentId)) pageId = current.parentId;
-    }
-    return await createGatesForPage(pageId);
+    const { proposal } = await proposalFor(context);
+    if (!proposal) return { error: 'Open the proposal page.' };
+    return await createGatesForPage(proposal.id);
   } catch (err) {
     console.error('createGates failed', err.message);
     return { error: 'The stage gates could not be created in Jira.' };
@@ -72,11 +119,8 @@ resolver.define('createGates', async ({ context }) => {
 
 // Teamwork Graph: who wrote or worked on the closest precedents, loaded after the verdict.
 resolver.define('getPeople', async ({ context }) => {
-  const contentId = context?.extension?.content?.id;
-  if (!isValidId(contentId)) return { people: [] };
   try {
-    let proposal = await page(contentId);
-    if (proposal && isReportTitle(proposal.title) && isValidId(proposal.parentId)) proposal = await page(proposal.parentId);
+    const { proposal } = await proposalFor(context);
     if (!proposal) return { people: [] };
     const pages = await precedentPages(proposal.title, proposal.id);
     const people = await peopleWhoWereThere({ cloudId: context?.cloudId, pages, viewerAccountId: context?.accountId });

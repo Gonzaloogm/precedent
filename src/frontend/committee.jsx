@@ -35,7 +35,15 @@ function askAgent(prompt) {
   rovo.open({ ...AGENT, prompt }).catch((err) => console.error('rovo.open failed', err));
 }
 
-function Empty() {
+function Empty({ inJira }) {
+  if (inJira) {
+    return (
+      <Stack space="space.100">
+        <Text>This work item is not linked to a committee review.</Text>
+        <Text>Epics created by Precedent Devil's Advocate show the verdict, conditions and stage gates here.</Text>
+      </Stack>
+    );
+  }
   return (
     <Stack space="space.150">
       <Heading as="h3">No committee verdict yet</Heading>
@@ -52,7 +60,7 @@ function Empty() {
   );
 }
 
-function Verdict({ record, proposalTitle, siteUrl, onCheck, onCreateGates, checking, checkNote }) {
+function Verdict({ record, proposalTitle, proposalUrl, inJira, siteUrl, onCheck, onCreateGates, checking, checkNote }) {
   const reviewed = (record.reviewedAt || '').slice(0, 10);
   return (
     <Stack space="space.250">
@@ -64,18 +72,34 @@ function Verdict({ record, proposalTitle, siteUrl, onCheck, onCreateGates, check
           {record.score !== null && record.score !== undefined && <Heading as="h3">{record.score}/100</Heading>}
         </Inline>
         <Text>
-          Committee verdict on {proposalTitle || 'this proposal'}, reviewed {reviewed}.
+          Committee verdict on{' '}
+          {inJira && proposalUrl ? (
+            <Link href={proposalUrl}>{proposalTitle || 'the proposal'}</Link>
+          ) : (
+            proposalTitle || 'this proposal'
+          )}
+          , reviewed {reviewed}.
         </Text>
+        {inJira && (
+          <Text>This epic exists because of that decision. The gates below decide whether it keeps its budget.</Text>
+        )}
       </Stack>
 
       {record.newComments > 0 && (
-        <SectionMessage appearance="warning" title={`${record.newComments} new comment${record.newComments > 1 ? 's' : ''} since this review`}>
+        <SectionMessage
+          appearance="warning"
+          title={`${record.newComments} new comment${record.newComments > 1 ? 's' : ''} since this review`}
+        >
           <Stack space="space.100">
             <Text>The team added objections after the verdict. Re-run the review so the committee answers them.</Text>
             <Box>
-              <Button onClick={() => askAgent('Re-run the review: answer the new comments on this page.')}>
-                Re-run the review
-              </Button>
+              {inJira ? (
+                <Link href={proposalUrl}>Open the proposal to re-run the review</Link>
+              ) : (
+                <Button onClick={() => askAgent('Re-run the review: answer the new comments on this page.')}>
+                  Re-run the review
+                </Button>
+              )}
             </Box>
           </Stack>
         </SectionMessage>
@@ -149,17 +173,20 @@ function Verdict({ record, proposalTitle, siteUrl, onCheck, onCreateGates, check
 
       <Stack space="space.050">
         {record.review?.url && <Link href={record.review.url}>Read the full review</Link>}
-        {record.epic?.url && <Link href={record.epic.url}>Open the Jira epic {record.epic.key}</Link>}
+        {record.epic?.url && !inJira && <Link href={record.epic.url}>Open the Jira epic {record.epic.key}</Link>}
+        {inJira && proposalUrl && <Link href={proposalUrl}>Open the proposal</Link>}
       </Stack>
 
-      <Inline space="space.100">
-        <Button onClick={() => askAgent('Re-run the review: there are new objections or new evidence.')}>
-          Re-run the review
-        </Button>
-        {!record.epic && record.verdict !== 'STOP' && (
-          <Button onClick={() => askAgent('Turn the plan into a Jira epic.')}>Create the Jira epic</Button>
-        )}
-      </Inline>
+      {!inJira && (
+        <Inline space="space.100">
+          <Button onClick={() => askAgent('Re-run the review: there are new objections or new evidence.')}>
+            Re-run the review
+          </Button>
+          {!record.epic && record.verdict !== 'STOP' && (
+            <Button onClick={() => askAgent('Turn the plan into a Jira epic.')}>Create the Jira epic</Button>
+          )}
+        </Inline>
+      )}
     </Stack>
   );
 }
@@ -208,14 +235,18 @@ function App() {
     invoke('getPeople')
       .then((r) => setPeople(r?.people || []))
       .catch(() => setPeople([]));
-    view.getContext().then((c) => setSiteUrl(c?.siteUrl || '')).catch(() => {});
+    view
+      .getContext()
+      .then((c) => setSiteUrl(c?.siteUrl || ''))
+      .catch(() => {});
   }, []);
 
   const onCheck = async () => {
     setChecking(true);
     const result = await invoke('checkGatesNow').catch(() => ({ flagged: [], error: 'Check failed.' }));
     setCheckNote(
-      result.error || (result.flagged.length ? `Flagged ${result.flagged.join(', ')} as missed.` : 'No new missed gates.')
+      result.error ||
+        (result.flagged.length ? `Flagged ${result.flagged.join(', ')} as missed.` : 'No new missed gates.'),
     );
     await load();
     setChecking(false);
@@ -237,7 +268,20 @@ function App() {
           <Text>{data.error}</Text>
         </SectionMessage>
       )}
-      {data && !data.error && (data.record ? <Verdict {...data} siteUrl={siteUrl} onCheck={onCheck} onCreateGates={onCreateGates} checking={checking} checkNote={checkNote} /> : <Empty />)}
+      {data &&
+        !data.error &&
+        (data.record ? (
+          <Verdict
+            {...data}
+            siteUrl={siteUrl}
+            onCheck={onCheck}
+            onCreateGates={onCreateGates}
+            checking={checking}
+            checkNote={checkNote}
+          />
+        ) : (
+          <Empty inJira={data.inJira} />
+        ))}
       {data && (
         <Box xcss={peopleBox}>
           <People people={people} />
@@ -250,5 +294,5 @@ function App() {
 ForgeReconciler.render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>
+  </React.StrictMode>,
 );
