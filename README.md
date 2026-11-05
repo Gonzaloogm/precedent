@@ -1,44 +1,101 @@
-# SprintFounders for Confluence & Jira (Forge app)
+# SprintFounders
 
-A skeptical AI committee inside Confluence & Jira that stress-tests new initiatives against your
-company's own history before you spend a cent.
+**A skeptical investment committee inside Confluence and Jira that remembers what your company already tried.**
 
-## Current scope (week 1)
+Teams pitch new initiatives and budget requests on Confluence pages every week. The committee that approves
+them rarely remembers that a similar pilot was cancelled two years ago, or that the last EHR integration cost
+three times the estimate. SprintFounders brings that memory into the review: its Rovo agents read the proposal,
+search the company's own Confluence pages and Jira work for precedents, rule on every objection the team raises,
+and give a clear GO, PIVOT or STOP with the conditions to keep going. When a plan is approved, they turn it into a
+Jira epic with stage gates that are checked every day.
 
-| Module | What it does |
+Built on Atlassian Forge for [Codegeist 2026](https://codegeist.devpost.com/), category *Apps for Business Teams*.
+
+## How it works
+
+1. **Write a proposal.** The *Get started* page creates a page from a template with the sections the committee
+   reads: problem, solution, customer, success metrics, key assumptions and risks.
+2. **SF Market Research** (Rovo agent) reads the page and writes a market report. It leads with the closest
+   precedent from your own history, e.g. *"a 2025 SMS reminder pilot was cancelled after reaching 11% opt-in"*.
+3. **The team objects** with ordinary page comments.
+4. **SF Devil's Advocate** (Rovo agent) rules on every objection (upheld, partly upheld, rejected), estimates the
+   economics with the company's own budgeting rules, scores four axes and gives GO, PIVOT or STOP.
+5. **The verdict stays on the page.** A byline badge shows `Committee: PIVOT · 55`; clicking it opens the
+   committee panel with the scores, the rulings and the stage gates.
+6. **Approved plans become Jira work.** The agent drafts an epic and stories and creates them after you confirm.
+   Each stage gate becomes a work item with a due date under the epic.
+7. **The committee keeps watching.** A daily check flags gates that passed their due date without being done,
+   on the Jira item and on the proposal. A new comment after the verdict marks the badge `· 1 new` so the team
+   knows the review is out of date. Re-running the review takes the missed gates and new objections into account.
+
+Nothing is saved or created without the user's confirmation in chat.
+
+## Try it
+
+1. Install the app on a Confluence and Jira site (see *Install* below).
+2. Open **Apps → SprintFounders** in Confluence and click **Load sample company**. It creates Brightpath Clinics,
+   a fictional clinic network with past retros, a buy-vs-build decision and a proposal for an AI scheduling
+   assistant. Optionally add its past initiatives to a Jira project you choose.
+3. Open *Proposal: AI scheduling assistant for clinics*, open Rovo chat and ask **SF Market Research** to
+   stress-test it. Then ask **SF Devil's Advocate** for the verdict and save it.
+
+## Forge modules
+
+| Module | Purpose |
 |---|---|
-| `rovo:agent` **SF Market Research** | Reads the proposal page, checks for similar past work, writes the market report |
-| `action` `get-proposal` | Reads the current Confluence page as plain text (capped at 12k characters) |
-| `action` `find-related-initiatives` | CQL + JQL search for similar pages and Jira issues ("déjà-vu check") |
-| `action` `save-report` | Saves the report as a child page, **only after the user confirms** |
+| `rovo:agent` × 2 | SF Market Research and SF Devil's Advocate |
+| `action` × 6 | Read the proposal, search precedents (CQL + JQL), read the review context, save reports, list Jira projects, create the epic and stories |
+| `confluence:contentBylineItem` | Verdict badge on the proposal, read from a content property |
+| `confluence:globalPage` | *Get started* page: sample company and proposal template (UI Kit) |
+| `scheduledTrigger` | Daily check of missed stage gates |
+| `trigger` (`avi:confluence:created:comment`) | Marks the verdict out of date when new objections arrive |
 
-All API calls run `asUser()`, so the agent only ever sees what the user can see.
+See [docs/architecture.md](docs/architecture.md) for the data flow.
 
-## Setup
+## Privacy and permissions
 
-Requires Node 22 or 24 (`nvm use` reads `.nvmrc`).
+- Agent actions call Confluence and Jira **as the user** (`asUser()`), so an agent only sees what that user can see.
+- The daily gate check and the comment event run as the app and only touch pages and work items the app labelled.
+- All data stays in the customer's Atlassian site: the verdict is a content property on the page and the gates are
+  ordinary Jira work items. The app has no external backend and sends nothing outside Atlassian.
+
+Scopes: `read:page`, `write:page`, `read:comment`, `write:comment`, `read:space`, `write:space`,
+`search:confluence`, `read:confluence-content.summary`, `read:jira-work`, `write:jira-work`.
+
+## Install
+
+Requires Node 22 or 24 (`nvm use` reads `.nvmrc`) and the Forge CLI.
 
 ```bash
 npm install -g @forge/cli
-forge login          # needs an Atlassian API token: https://id.atlassian.com/manage/api-tokens
+forge login
 npm install
-forge register       # replaces the placeholder app id in manifest.yml
+forge register     # gives the app your own id in manifest.yml
 forge deploy
-forge install        # choose Confluence and your developer site
+forge install --product confluence
+forge install --product jira
 ```
-
-Then open any Confluence page, open Rovo chat and pick **SF Market Research**.
 
 ## Development
 
 ```bash
-npm test             # unit tests (node:test, no dependencies)
+npm test           # unit tests (node:test)
 forge lint
-forge tunnel         # live reload against your site
+forge tunnel       # live reload against your site
 ```
 
-## Cost
+```
+manifest.yml               Forge modules, functions and scopes
+resource/agent/prompts/    agent instructions
+src/index.js               Rovo actions
+src/committee.js           committee panel resolver
+src/getStarted.js          Get started page resolver
+src/gateCheck.js           daily missed-gate check
+src/commentEvents.js       new-comment trigger
+src/frontend/              UI Kit pages
+src/lib/                   pure logic (search, verdict parsing, gates, sample data), covered by test/
+```
 
-No paid services: the LLM is Rovo's (credits come from the site where the app is installed), and
-the actions use Forge's free monthly allowance. Forge LLMs and Containers are not used because they
-have no free tier.
+## License
+
+[MIT](LICENSE)
