@@ -6,6 +6,10 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      # forge lint needs a login. Add FORGE_EMAIL and FORGE_API_TOKEN as repository secrets to enable it.
+      FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+      FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -14,6 +18,9 @@ jobs:
           cache: npm
       - run: npm ci --legacy-peer-deps
       - run: npm test
-      - run: npm install -g @forge/cli@latest
-      - run: forge settings set usage-analytics false
-      - run: forge lint
+      - name: forge lint
+        if: env.FORGE_API_TOKEN != ''
+        run: |
+          npm install -g @forge/cli@latest
+          forge settings set usage-analytics false
+          forge lint
