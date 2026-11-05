@@ -55,6 +55,9 @@ A short table built only from figures in the proposal, the reports or company co
 monthly running cost, value created per month, break-even month and the input the result depends on
 most. Mark every derived figure "Estimated:" and say which input it depends on. If a figure is
 missing, write "Unknown - ask the team".
+Break-even month = one-off cost divided by (value per month minus running cost per month), rounded
+up; show the sum, e.g. "180,000 / (44,100 - 2,000) = month 5". If running cost is unknown, give the
+result without it and say so. If value does not exceed running cost, write "Never at these figures".
 
 ## Bull case / Bear case
 - Bull (max 2 sentences): the specific mechanism that makes this a big win for the company.
