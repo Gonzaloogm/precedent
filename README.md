@@ -50,6 +50,7 @@ Nothing is saved or created without the user's confirmation in chat.
 | `confluence:contentBylineItem` | Verdict badge on the proposal, read from a content property |
 | `jira:issueContext` | The same committee panel on the epic, its stories and gates: why the work exists and whether it keeps its budget |
 | `confluence:globalPage` | *Get started* page: sample company and proposal template (UI Kit) |
+| `confluence:globalPage` *portfolio* | Every reviewed proposal with a traffic light: STOP or a missed gate is red, PIVOT or new objections amber |
 | `scheduledTrigger` | Daily check of missed stage gates |
 | `trigger` (`avi:confluence:created:comment`) | Marks the verdict out of date when new objections arrive |
 | Teamwork Graph API (`requestTeamworkGraph`) | Creator, contributors and teams of each precedent ("Ask the people who were there") |

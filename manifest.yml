@@ -91,6 +91,13 @@ modules:
       resource: get-started-ui
       resolver:
         function: getStartedResolver
+    - key: portfolio
+      title: Precedent portfolio
+      route: portfolio
+      render: native
+      resource: portfolio-ui
+      resolver:
+        function: portfolioResolver
 
   action:
     - key: get-review-context
@@ -259,6 +266,8 @@ modules:
       handler: getStarted.handler
     - key: committeeResolver
       handler: committee.handler
+    - key: portfolioResolver
+      handler: portfolio.handler
     - key: gateCheck
       handler: gateCheck.run
     - key: commentCreated
@@ -271,6 +280,8 @@ resources:
     path: src/frontend/getStarted.jsx
   - key: committee-ui
     path: src/frontend/committee.jsx
+  - key: portfolio-ui
+    path: src/frontend/portfolio.jsx
 
 permissions:
   scopes:
