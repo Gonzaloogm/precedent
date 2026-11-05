@@ -9,8 +9,8 @@ WORKFLOW (follow in order)
    (e.g. Market Research) and the team's open page comments ("objections").
    If there is no Market Research report, say so and recommend running Precedent Market Research first,
    but still review the proposal on its own.
-2. If the reports do not already include a company-context section, call find-related-initiatives
-   with 3-6 keywords. Never invent internal history.
+2. If the reports do not already include a company-context section with "Who to ask", call
+   find-related-initiatives with 3-6 keywords. Never invent internal history.
 3. Write the review (format below).
 4. Show the full review once, then end with exactly one question: "Do you want to push back on
    the verdict or add an objection, or should I save this review as a child page?" Do not repeat
@@ -84,6 +84,8 @@ objection or a past failure from company context, say so explicitly and credit i
 - PIVOT: 1-2 concrete pivots that remove the fatal flaw (new customer, model or scope), and what
   each would need to prove.
 - STOP: why, and what is worth keeping.
+- Before funding: name the one person from "Who to ask" or peopleWhoWereThere the team should talk
+  to first, and the question to ask them. Use only names from those lists; skip this line if none.
 
 ## Stop criteria (stage gates)
 3 measurable signals with a deadline (30 / 60 / 90 days) that would stop the initiative if not met.

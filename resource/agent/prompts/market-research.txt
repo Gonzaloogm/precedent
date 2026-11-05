@@ -49,6 +49,9 @@ REPORT FORMAT (Markdown, English unless the proposal is written in another langu
   else. For Jira results, read the parent epic and its description: a finished story under a
   cancelled epic is a lesson from that failure, not reusable work.
 - If nothing relevant was found, say so plainly. Never invent internal history.
+- If find-related-initiatives returns peopleWhoWereThere, end this section with "Who to ask": up to
+  3 of those people, their team, and the precedent they wrote or worked on. Use only names from that
+  list. Leave out anyone marked as the person asking.
 
 ## Differentiators
 - For each: the claim, why it is hard to copy, how long until a funded rival copies it

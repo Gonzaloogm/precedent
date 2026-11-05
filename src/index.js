@@ -5,6 +5,8 @@ import { collectObjections, isReportTitle } from './lib/review.js';
 import { parseStories, pickIssueTypes, textToAdf, isValidProjectKey, adfToText } from './lib/jira.js';
 import { buildVerdictRecord, bylineFor, VERDICT_PROPERTY, BYLINE_PROPERTY } from './lib/verdict.js';
 import { friendlyError } from './lib/errors.js';
+import { peopleWhoWereThere } from './graph.js';
+import { peopleSummary, titleKeywords } from './lib/people.js';
 import { GATE_LABEL, gateSummary, pageLabel, dueDateFor } from './lib/gates.js';
 
 const MAX_RESULTS = 8;
@@ -122,6 +124,7 @@ async function searchConfluence(keywords, excludePageId) {
   return {
     siteUrl: base.replace(/\/wiki$/, ''),
     pages: (data.results || []).map((r) => ({
+      id: r.content?.id ? String(r.content.id) : null,
       title: r.content?.title || r.title,
       url: base + (r.url || r.content?._links?.webui || ''),
       lastModified: r.lastModified || r.friendlyLastModified,
@@ -158,6 +161,17 @@ async function searchJira(keywords, siteUrl) {
   }));
 }
 
+// Precedents are earlier work, not this app's own reports.
+const precedentsOnly = (pages) => pages.filter((p) => p.id && !isReportTitle(p.title));
+
+/** For the committee panel: the closest precedents to a proposal, by its title. */
+export async function precedentPages(title, excludePageId) {
+  const keywords = sanitizeKeywords(titleKeywords(title));
+  if (!keywords.length) return [];
+  const { pages } = await searchConfluence(keywords, excludePageId);
+  return precedentsOnly(pages);
+}
+
 export async function findRelatedInitiatives(payload) {
   const keywords = sanitizeKeywords(payload?.keywords);
   if (!keywords.length) return { error: 'Provide 3 to 6 keywords describing the proposal.' };
@@ -180,6 +194,13 @@ export async function findRelatedInitiatives(payload) {
     console.error('Jira search failed', err.message);
     result.warnings.push('Jira search unavailable on this site.');
   }
+  // Teamwork Graph: who wrote or worked on the closest precedents, so the team can ask them.
+  const people = await peopleWhoWereThere({
+    cloudId: payload?.context?.cloudId,
+    pages: precedentsOnly(result.confluencePages),
+    viewerAccountId: payload?.context?.accountId,
+  });
+  if (people.length) result.peopleWhoWereThere = peopleSummary(people);
   return result;
 }
 

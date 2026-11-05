@@ -16,7 +16,9 @@ Built on Atlassian Forge for [Codegeist 2026](https://codegeist.devpost.com/), c
 1. **Write a proposal.** The *Get started* page creates a page from a template with the sections the committee
    reads: problem, solution, customer, success metrics, key assumptions and risks.
 2. **Precedent Market Research** (Rovo agent) reads the page and writes a market report. It leads with the closest
-   precedent from your own history, e.g. *"a 2025 SMS reminder pilot was cancelled after reaching 11% opt-in"*.
+   precedent from your own history, e.g. *"a 2025 SMS reminder pilot was cancelled after reaching 11% opt-in"*,
+   and, through the **Teamwork Graph**, names the people who wrote or worked on it and their teams, so the
+   proposer knows who to ask before asking for money.
 3. **The team objects** with ordinary page comments.
 4. **Precedent Devil's Advocate** (Rovo agent) rules on every objection (upheld, partly upheld, rejected), estimates the
    economics with the company's own budgeting rules, scores four axes and gives GO, PIVOT or STOP.
@@ -49,6 +51,7 @@ Nothing is saved or created without the user's confirmation in chat.
 | `confluence:globalPage` | *Get started* page: sample company and proposal template (UI Kit) |
 | `scheduledTrigger` | Daily check of missed stage gates |
 | `trigger` (`avi:confluence:created:comment`) | Marks the verdict out of date when new objections arrive |
+| Teamwork Graph API (`requestTeamworkGraph`) | Creator, contributors and teams of each precedent ("Ask the people who were there") |
 
 See [docs/architecture.md](docs/architecture.md) for the data flow.
 
@@ -60,7 +63,9 @@ See [docs/architecture.md](docs/architecture.md) for the data flow.
   ordinary Jira work items. The app has no external backend and sends nothing outside Atlassian.
 
 Scopes: `read:page`, `write:page`, `read:comment`, `write:comment`, `read:space`, `write:space`,
-`search:confluence`, `read:confluence-content.summary`, `read:jira-work`, `write:jira-work`.
+`search:confluence`, `read:confluence-content.summary`, `read:jira-work`, `write:jira-work`, and read-only
+Teamwork Graph scopes `read:graph:page:confluence`, `read:graph:issue:jira`, `read:graph:user:atlassian`,
+`read:graph:team:atlassian`.
 
 ## Install
 
@@ -92,6 +97,7 @@ src/committee.js           committee panel resolver
 src/getStarted.js          Get started page resolver
 src/gateCheck.js           daily missed-gate check
 src/commentEvents.js       new-comment trigger
+src/graph.js               Teamwork Graph queries (people on each precedent)
 src/frontend/              UI Kit pages
 src/lib/                   pure logic (search, verdict parsing, gates, sample data), covered by test/
 ```

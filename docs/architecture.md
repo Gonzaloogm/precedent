@@ -22,6 +22,9 @@ flowchart LR
 1. `get-proposal` reads the page as plain text (capped at 12k characters).
 2. `find-related-initiatives` runs a relevance-ranked CQL search and a JQL search, including each work item's
    parent epic and description, so a finished story under a cancelled epic is read as a lesson, not reusable work.
+   For the closest Confluence precedents it asks the Teamwork Graph, in one batched query, for each page's
+   creator and contributors, then for those people's teams (`src/graph.js`). If the graph is unavailable the
+   search still returns its results.
 3. `get-review-context` gives Devil's Advocate the proposal, the Market Research report and the page comments.
 4. `save-report` writes the review as a child page and, for a verdict, stores a structured record on the
    proposal as the content property `precedent-verdict`: verdict, score, axis scores, objection rulings and

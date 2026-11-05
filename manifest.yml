@@ -166,9 +166,9 @@ modules:
       function: findRelatedInitiatives
       actionVerb: GET
       description: >-
-        Searches this site's Confluence pages and Jira issues for earlier
-        initiatives, decisions or projects similar to the proposal. Returns
-        titles, links, status and excerpts to cite.
+        Searches Confluence pages and Jira issues for earlier initiatives similar
+        to the proposal. Returns links, status and excerpts to cite, plus the
+        people who wrote or worked on the closest precedents.
       inputs:
         keywords:
           title: Keywords
@@ -275,3 +275,7 @@ permissions:
     - read:confluence-content.summary
     - read:jira-work
     - write:jira-work
+    - read:graph:page:confluence
+    - read:graph:issue:jira
+    - read:graph:user:atlassian
+    - read:graph:team:atlassian

@@ -1,7 +1,8 @@
 // Resolver for the committee panel (byline item on every Confluence page).
 import Resolver from '@forge/resolver';
 import api, { route } from '@forge/api';
-import { readVerdict, createGatesForPage } from './index.js';
+import { readVerdict, createGatesForPage, precedentPages } from './index.js';
+import { peopleWhoWereThere } from './graph.js';
 import { isReportTitle } from './lib/review.js';
 import { isValidId } from './lib/search.js';
 import { gateState } from './lib/gates.js';
@@ -66,6 +67,23 @@ resolver.define('createGates', async ({ context }) => {
   } catch (err) {
     console.error('createGates failed', err.message);
     return { error: 'The stage gates could not be created in Jira.' };
+  }
+});
+
+// Teamwork Graph: who wrote or worked on the closest precedents, loaded after the verdict.
+resolver.define('getPeople', async ({ context }) => {
+  const contentId = context?.extension?.content?.id;
+  if (!isValidId(contentId)) return { people: [] };
+  try {
+    let proposal = await page(contentId);
+    if (proposal && isReportTitle(proposal.title) && isValidId(proposal.parentId)) proposal = await page(proposal.parentId);
+    if (!proposal) return { people: [] };
+    const pages = await precedentPages(proposal.title, proposal.id);
+    const people = await peopleWhoWereThere({ cloudId: context?.cloudId, pages, viewerAccountId: context?.accountId });
+    return { people };
+  } catch (err) {
+    console.error('getPeople failed', err.message);
+    return { people: [] };
   }
 });
 

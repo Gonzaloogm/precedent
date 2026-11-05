@@ -22,6 +22,7 @@ const RULING_LOOK = { upheld: 'success', 'partly upheld': 'moved', rejected: 'de
 const panel = xcss({ padding: 'space.200', width: '100%' });
 const row = xcss({ width: '100%' });
 const tag = xcss({ flexShrink: '0' });
+const peopleBox = xcss({ paddingBlockStart: 'space.200' });
 
 function dueDate(reviewedAt, days) {
   const d = new Date(reviewedAt);
@@ -163,11 +164,39 @@ function Verdict({ record, proposalTitle, siteUrl, onCheck, onCreateGates, check
   );
 }
 
+function People({ people }) {
+  if (people === null) return <Spinner size="small" label="Looking for the people who were there" />;
+  if (!people.length) return null;
+  return (
+    <Stack space="space.100">
+      <Heading as="h4">Ask the people who were there</Heading>
+      <Text>From the Teamwork Graph: who wrote or worked on the closest precedents.</Text>
+      {people.map((p) => (
+        <Stack key={p.id} space="space.050">
+          <Inline space="space.100" alignBlock="center" shouldWrap>
+            <Text weight="bold">{p.name}</Text>
+            {p.teams.map((t) => (
+              <Lozenge key={t}>{t}</Lozenge>
+            ))}
+            {p.isViewer && <Lozenge appearance="new">you</Lozenge>}
+          </Inline>
+          {p.pages.map((pg) => (
+            <Text key={pg.url}>
+              {pg.role === 'author' ? 'Wrote' : 'Worked on'} <Link href={pg.url}>{pg.title}</Link>
+            </Text>
+          ))}
+        </Stack>
+      ))}
+    </Stack>
+  );
+}
+
 function App() {
   const [data, setData] = useState(null);
   const [siteUrl, setSiteUrl] = useState('');
   const [checking, setChecking] = useState(false);
   const [checkNote, setCheckNote] = useState(null);
+  const [people, setPeople] = useState(null);
 
   const load = () =>
     invoke('getVerdict')
@@ -176,6 +205,9 @@ function App() {
 
   useEffect(() => {
     load();
+    invoke('getPeople')
+      .then((r) => setPeople(r?.people || []))
+      .catch(() => setPeople([]));
     view.getContext().then((c) => setSiteUrl(c?.siteUrl || '')).catch(() => {});
   }, []);
 
@@ -206,6 +238,11 @@ function App() {
         </SectionMessage>
       )}
       {data && !data.error && (data.record ? <Verdict {...data} siteUrl={siteUrl} onCheck={onCheck} onCreateGates={onCreateGates} checking={checking} checkNote={checkNote} /> : <Empty />)}
+      {data && (
+        <Box xcss={peopleBox}>
+          <People people={people} />
+        </Box>
+      )}
     </Box>
   );
 }
