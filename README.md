@@ -2,7 +2,8 @@
 
 **A skeptical investment committee inside Confluence and Jira that remembers what your company already tried.**
 
-Teams pitch new initiatives and budget requests on Confluence pages every week. The committee that approves
+Teams pitch budget requests on Confluence pages every week: a new product, a marketing campaign, a tool,
+a hire, a vendor contract. The committee that approves
 them rarely remembers that a similar pilot was cancelled two years ago, or that the last EHR integration cost
 three times the estimate. Precedent brings that memory into the review: its Rovo agents read the proposal,
 search the company's own Confluence pages and Jira work for precedents, rule on every objection the team raises,
@@ -13,8 +14,9 @@ Built on Atlassian Forge for [Codegeist 2026](https://codegeist.devpost.com/), c
 
 ## How it works
 
-1. **Write a proposal.** The *Get started* page creates a page from a template with the sections the committee
-   reads: problem, solution, customer, success metrics, key assumptions and risks.
+1. **Write a proposal.** The *Get started* page creates a page from a template for the kind of request (product,
+   campaign, tool, hire or vendor) with the sections the committee reads, and both agents adapt their questions
+   and scoring axes to that type.
 2. **Precedent Market Research** (Rovo agent) reads the page and writes a market report. It leads with the closest
    precedent from your own history, e.g. *"a 2025 SMS reminder pilot was cancelled after reaching 11% opt-in"*,
    and, through the **Teamwork Graph**, names the people who wrote or worked on it and their teams, so the

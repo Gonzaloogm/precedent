@@ -22,11 +22,15 @@ test('sample pages convert to clean storage and have unique titles', () => {
   }
 });
 
-test('exactly one sample proposal, with objections to rule on', () => {
+test('two sample proposals of different request types, each with objections to rule on', () => {
   const proposals = SAMPLE_PAGES.filter((p) => p.proposal);
-  assert.equal(proposals.length, 1);
+  assert.equal(proposals.length, 2);
   assert.equal(SAMPLE_PROPOSAL_TITLE, proposals[0].title);
   assert.ok(proposals[0].comments.length >= 2);
+  assert.ok(proposals.every((p) => p.comments.length >= 1 && /\*\*Request type:\*\*/.test(p.markdown)));
+  // The campaign must find last year's stopped Instagram campaign.
+  const campaign = proposals[1].markdown.toLowerCase();
+  assert.ok(['instagram', 'physio', 'packages'].every((w) => campaign.includes(w)));
 });
 
 test('the precedent the demo relies on shares keywords with the proposal', () => {
@@ -59,7 +63,7 @@ test('pickDoneTransition picks by status category, not by name', () => {
   assert.equal(pickDoneTransition(undefined), null);
 });
 
-import { PROPOSAL_TEMPLATE, proposalTitle } from '../src/lib/template.js';
+import { PROPOSAL_TEMPLATE, proposalTitle, templateFor, requestType, REQUEST_TYPES } from '../src/lib/template.js';
 
 test('proposal template converts cleanly and covers the sections the agents read', () => {
   const storage = markdownToStorage(PROPOSAL_TEMPLATE);
@@ -72,4 +76,16 @@ test('proposalTitle prefixes and trims', () => {
   assert.equal(proposalTitle('  Loyalty   app '), 'Proposal: Loyalty app');
   assert.equal(proposalTitle('proposal: X'), 'proposal: X');
   assert.equal(proposalTitle('   '), null);
+});
+
+test('every request type has a template with metrics, assumptions and risks', () => {
+  for (const type of Object.keys(REQUEST_TYPES)) {
+    const storage = markdownToStorage(templateFor(type));
+    assert.match(storage, new RegExp(REQUEST_TYPES[type]));
+    for (const section of ['Success metrics', 'Key assumptions', 'Risks']) {
+      assert.match(storage, new RegExp(`<h2>${section}</h2>`));
+    }
+  }
+  assert.equal(requestType('nonsense'), 'initiative');
+  assert.match(templateFor('campaign'), /## Audience and channel/);
 });

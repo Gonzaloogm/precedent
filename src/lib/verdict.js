@@ -1,3 +1,5 @@
+import { requestType } from './template.js';
+
 // Structured committee verdict, stored as a content property on the proposal so the byline badge
 // and the committee panel can show it without re-reading the review. The agent sends plain
 // strings; everything here is parsed defensively because it comes from the LLM.
@@ -79,6 +81,7 @@ export function buildVerdictRecord(payload, review, now = new Date()) {
     axes: parseAxes(payload?.axisScores),
     objections: parseRulings(payload?.objectionRulings),
     gates: parseGates(payload?.stageGates),
+    type: requestType(String(payload?.requestType || '').trim().toLowerCase()),
     review: review ? { title: clip(review.title, 200), url: review.url } : null,
     reviewedAt: now.toISOString(),
     epic: null,

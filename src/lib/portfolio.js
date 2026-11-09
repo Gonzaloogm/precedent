@@ -46,6 +46,7 @@ export function portfolioRow({ id, title, url }, record, gates) {
     title,
     url,
     verdict: record.verdict,
+    type: record.type || 'initiative',
     score: record.score ?? null,
     reviewedAt: (record.reviewedAt || '').slice(0, 10),
     light: trafficLight(record, gates),

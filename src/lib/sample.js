@@ -19,7 +19,7 @@ export const SAMPLE_HOME = {
 Brightpath Clinics runs 42 physiotherapy and dental clinics in Spain and Portugal, with about 600 staff. Every new initiative or budget request is written as a proposal page and reviewed before it gets money, people or time.
 
 ## Try it in three minutes
-1. Open **Proposal: AI scheduling assistant for clinics**.
+1. Open **Proposal: AI scheduling assistant for clinics** (a new product), or **Proposal: Paid social campaign for physio packages** (a marketing campaign).
 2. Open Rovo chat, pick **Precedent Market Research** and ask it to stress-test the proposal. It should find the cancelled SMS reminders pilot below.
 3. Read the two objections the team left as comments, then ask **Precedent Devil's Advocate** whether to fund it.
 4. If the verdict is GO or PIVOT, let it draft the Jira epic. The company's past initiatives are in Jira too, labelled "precedent-sample".
@@ -106,7 +106,7 @@ Prepaid packages of 5 physio sessions sold through 3 partner gyms.
   {
     title: 'Proposal: AI scheduling assistant for clinics',
     proposal: true,
-    markdown: `**Requested by:** Operations. **Budget asked:** EUR 60,000 for the first year. **Team:** 2 developers and 1 operations lead for 6 months.
+    markdown: `**Request type:** New product or service. **Requested by:** Operations. **Budget asked:** EUR 60,000 for the first year. **Team:** 2 developers and 1 operations lead for 6 months.
 
 ## Problem
 Our no-show rate is 14%. Every empty slot is lost revenue, and reception spends hours a day on the phone moving appointments.
@@ -132,6 +132,35 @@ Reception staff and patients in our 42 clinics. Later, we could sell it to other
     comments: [
       'The front desk already rejected the SMS pilot because it added work for them. Why would an AI assistant be different? Who handles the conversations the assistant cannot solve?',
       'EUR 60,000 looks low. The 2024 portal decision says any EHR integration should be budgeted at 3x the vendor estimate. Has the EHR team seen this plan?',
+    ],
+  },
+  {
+    title: 'Proposal: Paid social campaign for physio packages',
+    proposal: true,
+    markdown: `**Request type:** Marketing campaign. **Requested by:** Marketing. **Budget asked:** EUR 30,000 over 10 weeks. **Team:** 1 marketer and an external agency.
+
+## Goal
+Sell 400 prepaid packages of 5 physio sessions to new patients.
+
+## Audience and channel
+Adults aged 25 to 55 who play sport, on Instagram and TikTok, across Spain and Portugal.
+
+## Offer and message
+5 physio sessions for EUR 199, valid for 6 months. "Get back to your sport faster."
+
+## Success metrics
+- 400 packages sold in 10 weeks.
+- Cost per package sold under EUR 75.
+
+## Key assumptions
+- Short videos with our physiotherapists will perform better than last year's static posts.
+- New patients will book their sessions at any of our 42 clinics.
+
+## Risks
+- Creative fatigue after a few weeks.
+- Health advertising rules on social platforms.`,
+    comments: [
+      'Our last Instagram campaign cost EUR 140 per new patient against a EUR 60 target. What is different this time, apart from video?',
     ],
   },
 ];

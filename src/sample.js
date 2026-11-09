@@ -4,7 +4,7 @@
 import api, { route } from '@forge/api';
 import { markdownToStorage, escapeHtml } from './lib/format.js';
 import { pickIssueTypes, textToAdf, isValidProjectKey } from './lib/jira.js';
-import { PROPOSAL_TEMPLATE, proposalTitle } from './lib/template.js';
+import { templateFor, proposalTitle } from './lib/template.js';
 import {
   SAMPLE_SPACE,
   SAMPLE_LABEL,
@@ -278,7 +278,7 @@ export async function listSpaces() {
   }
 }
 
-export async function createProposal(spaceId, rawTitle) {
+export async function createProposal(spaceId, rawTitle, type) {
   const title = proposalTitle(rawTitle);
   if (!title) return { ok: false, error: 'Give the proposal a short title.' };
   if (!/^\d+$/.test(String(spaceId || ''))) return { ok: false, error: 'Pick a space.' };
@@ -291,7 +291,7 @@ export async function createProposal(spaceId, rawTitle) {
         ...(space?.homepageId ? { parentId: space.homepageId } : {}),
         status: 'current',
         title,
-        body: { representation: 'storage', value: markdownToStorage(PROPOSAL_TEMPLATE) },
+        body: { representation: 'storage', value: markdownToStorage(templateFor(type)) },
       }),
     });
     return { ok: true, webui: created._links?.webui || '', base: siteBase(created._links) };

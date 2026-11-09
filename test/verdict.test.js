@@ -63,12 +63,14 @@ test('buildVerdictRecord and bylineFor', () => {
       axisScores: 'Team=15;Timing=12;Moat=8;Economics=17',
       objectionRulings: '- upheld | a\n- rejected | b',
       stageGates: '- 30 | x',
+      requestType: 'Campaign',
     },
     { title: 'Review', url: 'https://x/wiki/p' },
     new Date('2026-11-04T00:00:00Z')
   );
   assert.equal(record.verdict, 'PIVOT');
   assert.equal(record.score, 52);
+  assert.equal(record.type, 'campaign');
   assert.equal(record.axes.length, 4);
   assert.equal(record.reviewedAt, '2026-11-04T00:00:00.000Z');
   assert.deepEqual(bylineFor(record), {

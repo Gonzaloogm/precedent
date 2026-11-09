@@ -10,6 +10,6 @@ resolver.define('seedPages', () => seedPages());
 resolver.define('seedJiraEpic', ({ payload }) => seedJiraEpic(String(payload?.projectKey || ''), payload?.index));
 
 resolver.define('listSpaces', () => listSpaces());
-resolver.define('createProposal', ({ payload }) => createProposal(payload?.spaceId, payload?.title));
+resolver.define('createProposal', ({ payload }) => createProposal(payload?.spaceId, payload?.title, payload?.type));
 
 export const handler = resolver.getDefinitions();

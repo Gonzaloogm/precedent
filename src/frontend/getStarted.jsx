@@ -16,6 +16,9 @@ import ForgeReconciler, {
   xcss,
 } from '@forge/react';
 import { invoke, view } from '@forge/bridge';
+import { REQUEST_TYPES } from '../lib/template.js';
+
+const TYPE_OPTIONS = Object.entries(REQUEST_TYPES).map(([value, label]) => ({ value, label }));
 
 const card = xcss({ padding: 'space.300', borderRadius: 'border.radius', backgroundColor: 'elevation.surface.sunken' });
 const selectBox = xcss({ width: '320px' });
@@ -68,6 +71,7 @@ function App() {
   const [spaces, setSpaces] = useState([]);
   const [space, setSpace] = useState(null);
   const [title, setTitle] = useState('');
+  const [type, setType] = useState(TYPE_OPTIONS[0]);
   const [proposalResult, setProposalResult] = useState(null);
 
   useEffect(() => {
@@ -79,7 +83,7 @@ function App() {
   const newProposal = async () => {
     setProposalResult(null);
     setStep('Creating the proposal page');
-    const r = await call('createProposal', { spaceId: space?.value, title });
+    const r = await call('createProposal', { spaceId: space?.value, title, type: type?.value });
     setStep(null);
     if (!r.ok) return setProposalResult({ title: 'The proposal was not created', error: r.error });
     const url = `${r.base || siteUrl}/wiki${r.webui}`;
@@ -206,10 +210,19 @@ function App() {
         <Stack space="space.150">
           <Heading as="h3">2. Write a proposal</Heading>
           <Text>
-            Creates a page with the sections the committee reads: problem, solution, customer, success metrics, key
+            Any budget request works: a new product, a campaign, a tool, a hire or a vendor. The page gets the
+            sections the committee reads for that kind of request, from the problem to success metrics, key
             assumptions and risks.
           </Text>
           <Inline space="space.100" alignBlock="end" shouldWrap>
+            <Box xcss={selectBox}>
+              <Select
+                inputId="proposal-type"
+                options={TYPE_OPTIONS}
+                value={type}
+                onChange={setType}
+              />
+            </Box>
             <Box xcss={selectBox}>
               <Select
                 inputId="proposal-space"

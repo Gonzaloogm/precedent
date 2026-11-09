@@ -13,6 +13,7 @@ import ForgeReconciler, {
   xcss,
 } from '@forge/react';
 import { invoke } from '@forge/bridge';
+import { REQUEST_TYPES } from '../lib/template.js';
 
 const LIGHT = {
   red: { appearance: 'removed', label: 'At risk' },
@@ -75,7 +76,9 @@ function toRow(r, siteUrl) {
         content: (
           <Stack space="space.050">
             <Link href={r.url}>{r.title}</Link>
-            <Text size="small">Reviewed {r.reviewedAt}</Text>
+            <Text size="small">
+              {REQUEST_TYPES[r.type] || REQUEST_TYPES.initiative} · reviewed {r.reviewedAt}
+            </Text>
           </Stack>
         ),
       },

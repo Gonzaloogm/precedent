@@ -248,6 +248,11 @@ modules:
           type: string
           required: false
           description: Devil's Advocate only. One line per gate, "- 30 | measurable signal".
+        requestType:
+          title: Request type
+          type: string
+          required: false
+          description: Devil's Advocate only. One of initiative, campaign, tool, hire, vendor.
 
   function:
     - key: getProposal
