@@ -30,6 +30,8 @@ modules:
         - get-proposal
         - find-related-initiatives
         - save-report
+      skills:
+        - precedent-check
 
     - key: devils-advocate-agent
       name: Precedent Devil's Advocate
@@ -51,6 +53,25 @@ modules:
         - save-report
         - list-jira-projects
         - create-jira-epic
+        - get-portfolio
+      skills:
+        - precedent-check
+
+  rovo:skill:
+    - key: precedent-check
+      source:
+        dir: skills/precedent-check
+      dependencies:
+        tools:
+          - find-related-initiatives
+
+  rovo:mcp:
+    - key: precedent-mcp
+      name: Precedent
+      tools:
+        - find-related-initiatives
+        - get-committee-verdict
+        - get-portfolio
 
   trigger:
     - key: comment-created
@@ -197,6 +218,39 @@ modules:
           required: false
           description: The proposal page ID, so it is excluded from the results.
 
+    - key: get-committee-verdict
+      name: Get committee verdict
+      function: getCommitteeVerdict
+      actionVerb: GET
+      description: >-
+        Returns the committee decision on a proposal: verdict, score, answered
+        objections, stage gates with their live Jira state, and the assumption ledger.
+      inputs:
+        pageId:
+          title: Page ID
+          type: string
+          required: false
+          description: The proposal page ID. Leave empty on the proposal page.
+        title:
+          title: Proposal title
+          type: string
+          required: false
+          description: The proposal title, when the page ID is not known.
+
+    - key: get-portfolio
+      name: Get committee portfolio
+      function: getPortfolio
+      actionVerb: GET
+      description: >-
+        Lists every proposal the committee reviewed, worst first: status (at risk,
+        needs attention, on track), verdict, stage gates and the next deadline.
+      inputs:
+        status:
+          title: Status filter
+          type: string
+          required: false
+          description: Optional. One of at risk, needs attention, on track.
+
     - key: save-report
       name: Save report
       function: saveReport
@@ -274,6 +328,10 @@ modules:
       handler: index.listJiraProjects
     - key: createJiraEpic
       handler: index.createJiraEpic
+    - key: getCommitteeVerdict
+      handler: tools.getCommitteeVerdict
+    - key: getPortfolio
+      handler: tools.getPortfolio
     - key: getStartedResolver
       handler: getStarted.handler
     - key: committeeResolver

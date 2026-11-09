@@ -55,11 +55,33 @@ Nothing is saved or created without the user's confirmation in chat.
 | `jira:issueContext` | The same committee panel on the epic, its stories and gates: why the work exists and whether it keeps its budget |
 | `confluence:globalPage` | *Get started* page: sample company and proposal template (UI Kit) |
 | `confluence:globalPage` *portfolio* | Every reviewed proposal with a traffic light: STOP or a missed gate is red, PIVOT or new objections amber |
+| `rovo:skill` *precedent-check* | Reusable instructions for finding and reading precedents, used by both agents ([SKILL.md](skills/precedent-check/SKILL.md)) |
+| `rovo:mcp` | Exposes `find-related-initiatives`, `get-committee-verdict` and `get-portfolio` as MCP tools |
 | `scheduledTrigger` | Daily check of missed stage gates |
 | `trigger` (`avi:confluence:created:comment`) | Marks the verdict out of date when new objections arrive |
 | Teamwork Graph API (`requestTeamworkGraph`) | Creator, contributors and teams of each precedent ("Ask the people who were there") |
 
 See [docs/architecture.md](docs/architecture.md) for the data flow.
+
+## Use it from other AI tools (MCP)
+
+The `rovo:mcp` module puts three read-only tools on Atlassian's MCP server, so Rovo Studio agents and
+external clients such as Claude, Cursor or VS Code can ask the committee directly:
+
+- `find-related-initiatives`: what the company already tried, and who to ask.
+- `get-committee-verdict`: the decision on a proposal, its gates and its assumption ledger.
+- `get-portfolio`: every reviewed proposal, worst first.
+
+A site admin turns the tools on in **Atlassian Administration → Apps → Sites → Connected apps → Precedent**.
+Then add the server to your client, for example in Claude Code:
+
+```bash
+claude mcp add --transport http precedent https://mcp.atlassian.com/forge/ee229f6b-ee7f-480c-8ac8-e6e2cbec7b51
+```
+
+The client signs in with OAuth and every call runs with that user's permissions. To teach a third-party
+agent how to use the tools, add [skills/precedent-check/SKILL.md](skills/precedent-check/SKILL.md) to it: the
+same file powers the Rovo skill.
 
 ## Privacy and permissions
 
@@ -104,6 +126,8 @@ src/getStarted.js          Get started page resolver
 src/gateCheck.js           daily missed-gate check
 src/commentEvents.js       new-comment trigger
 src/graph.js               Teamwork Graph queries (people on each precedent)
+src/tools.js               read-only actions shared with the MCP server
+skills/precedent-check/    the Rovo skill, also usable by external agents
 src/frontend/              UI Kit pages
 src/lib/                   pure logic (search, verdict parsing, gates, sample data), covered by test/
 ```

@@ -28,22 +28,27 @@ async function reviewedProposals() {
   return { base: base.replace(/\/wiki$/, ''), proposals: [...byId.values()].slice(0, MAX_PROPOSALS) };
 }
 
+/** Every reviewed proposal with live gate state, worst first. Shared by the page and the MCP tool. */
+export async function loadPortfolio() {
+  const { base, proposals } = await reviewedProposals();
+  const withRecords = (
+    await Promise.all(proposals.map(async (p) => ({ ...p, record: await readVerdict(p.id).catch(() => null) })))
+  ).filter((p) => p.record?.verdict);
+  // One Jira query for every gate in the portfolio.
+  const statuses = await gateStatuses(withRecords.flatMap((p) => p.record.gates || [])).catch(() => ({}));
+  const rows = withRecords.map((p) => {
+    const gates = (p.record.gates || []).map((g) => ({ ...g, ...(g.key ? statuses[g.key] : {}) }));
+    return portfolioRow(p, p.record, gates);
+  });
+  const sorted = sortPortfolio(rows);
+  return { siteUrl: base, rows: sorted, totals: portfolioTotals(sorted) };
+}
+
 const resolver = new Resolver();
 
 resolver.define('getPortfolio', async () => {
   try {
-    const { base, proposals } = await reviewedProposals();
-    const withRecords = (
-      await Promise.all(proposals.map(async (p) => ({ ...p, record: await readVerdict(p.id).catch(() => null) })))
-    ).filter((p) => p.record?.verdict);
-    // One Jira query for every gate in the portfolio.
-    const statuses = await gateStatuses(withRecords.flatMap((p) => p.record.gates || [])).catch(() => ({}));
-    const rows = withRecords.map((p) => {
-      const gates = (p.record.gates || []).map((g) => ({ ...g, ...(g.key ? statuses[g.key] : {}) }));
-      return portfolioRow(p, p.record, gates);
-    });
-    const sorted = sortPortfolio(rows);
-    return { siteUrl: base, rows: sorted, totals: portfolioTotals(sorted) };
+    return await loadPortfolio();
   } catch (err) {
     console.error('getPortfolio failed', err.message);
     return { rows: [], error: 'The portfolio could not be loaded. Reload the page to try again.' };
