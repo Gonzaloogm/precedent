@@ -7,6 +7,8 @@ import { buildVerdictRecord, bylineFor, VERDICT_PROPERTY, BYLINE_PROPERTY } from
 import { friendlyError } from './lib/errors.js';
 import { peopleWhoWereThere } from './graph.js';
 import { peopleSummary, titleKeywords } from './lib/people.js';
+import { liveGates } from './gateStatus.js';
+import { assumptionStates, assumptionsForGate, carryHistory, ledgerLines } from './lib/assumptions.js';
 import { GATE_LABEL, gateSummary, pageLabel, dueDateFor } from './lib/gates.js';
 
 const MAX_RESULTS = 8;
@@ -31,11 +33,9 @@ async function readJson(response) {
 }
 
 async function fetchPage(pageId) {
-  const response = await api
-    .asUser()
-    .requestConfluence(route`/wiki/api/v2/pages/${pageId}?body-format=storage`, {
-      headers: { Accept: 'application/json' },
-    });
+  const response = await api.asUser().requestConfluence(route`/wiki/api/v2/pages/${pageId}?body-format=storage`, {
+    headers: { Accept: 'application/json' },
+  });
   return readJson(response);
 }
 
@@ -95,8 +95,19 @@ export async function getReviewContext(payload) {
       }
     }
 
+    // The assumption ledger: what earlier reviews assumed and what the stage gates showed since.
+    let assumptionLedger = [];
+    try {
+      const record = await readVerdict(proposal.id);
+      if (record)
+        assumptionLedger = ledgerLines(assumptionStates(record.assumptions, await liveGates(record)), record.history);
+    } catch (err) {
+      console.error('assumption ledger failed', err.message);
+    }
+
     return {
       proposal: { pageId: proposal.id, title: proposal.title, ...storageToText(proposal.body?.storage?.value) },
+      ...(assumptionLedger.length ? { assumptionLedger } : {}),
       reports: reportPages.map((p) => ({
         pageId: p.id,
         title: p.title,
@@ -115,10 +126,9 @@ async function searchConfluence(keywords, excludePageId) {
   const cql = buildCql(keywords, excludePageId);
   const response = await api
     .asUser()
-    .requestConfluence(
-      route`/wiki/rest/api/search?cql=${cql}&limit=${MAX_RESULTS}&expand=content.history`,
-      { headers: { Accept: 'application/json' } }
-    );
+    .requestConfluence(route`/wiki/rest/api/search?cql=${cql}&limit=${MAX_RESULTS}&expand=content.history`, {
+      headers: { Accept: 'application/json' },
+    });
   const data = await readJson(response);
   const base = data._links?.base || '';
   return {
@@ -226,7 +236,7 @@ const confluenceAs = (actor) => (actor === 'app' ? api.asApp() : api.asUser());
 async function getProperty(pageId, key, actor = 'user') {
   const response = await confluenceAs(actor).requestConfluence(
     route`/wiki/api/v2/pages/${pageId}/properties?key=${key}`,
-    { headers: { Accept: 'application/json' } }
+    { headers: { Accept: 'application/json' } },
   );
   const data = await readJson(response);
   return data?.results?.[0] || null;
@@ -285,13 +295,21 @@ export async function saveReport(payload) {
     if (record) {
       try {
         const previous = await readVerdict(parent.id);
-        await writeVerdict(parent.id, { ...record, epic: previous?.epic || null });
+        // What the previous review learned (assumptions its gates confirmed or disproved) is kept.
+        const history = previous ? carryHistory(previous, await liveGates(previous)) : [];
+        await writeVerdict(parent.id, { ...record, history, epic: previous?.epic || null });
       } catch (err) {
         console.error('saving verdict failed', err.message);
         warning = 'The review was saved, but the committee panel could not be updated.';
       }
     }
-    return { saved: true, title: page.title, url, ...(record ? { verdict: record.verdict } : {}), ...(warning ? { warning } : {}) };
+    return {
+      saved: true,
+      title: page.title,
+      url,
+      ...(record ? { verdict: record.verdict } : {}),
+      ...(warning ? { warning } : {}),
+    };
   } catch (err) {
     console.error('saveReport failed', err.message);
     return { error: friendlyError(err, 'save the report') };
@@ -326,7 +344,12 @@ async function proposalLink(payload) {
     let page = await fetchPage(pageId);
     if (isReportTitle(page.title) && isValidId(page.parentId)) page = await fetchPage(page.parentId);
     const base = page._links?.base || '';
-    return { id: String(page.id), title: page.title, url: base + (page._links?.webui || ''), siteUrl: base.replace(/\/wiki$/, '') };
+    return {
+      id: String(page.id),
+      title: page.title,
+      url: base + (page._links?.webui || ''),
+      siteUrl: base.replace(/\/wiki$/, ''),
+    };
   } catch (err) {
     console.error('proposalLink failed', err.message);
     return null;
@@ -355,7 +378,11 @@ async function attachEpicAndGates(payload, projectKey, epic, gateTypeId) {
             summary: gateSummary(g),
             labels: [GATE_LABEL, pageLabel(page.id)],
             description: textToAdf(
-              `Stop criterion from the committee review. If this is not done by the due date, the committee recommends re-running the review before more budget is spent.\n\nDecision record: [${page.title}](${(page._links?.base || '') + (page._links?.webui || '')})`
+              `Stop criterion from the committee review. If this is not done by the due date, the committee recommends re-running the review before more budget is spent.` +
+                assumptionsForGate(record.assumptions, g.days)
+                  .map((a) => `\n\nTests the assumption: ${a}`)
+                  .join('') +
+                `\n\nDecision record: [${page.title}](${(page._links?.base || '') + (page._links?.webui || '')})`,
             ),
             ...(withDueDate ? { duedate: dueDateFor(record.reviewedAt, g.days) } : {}),
           },
@@ -408,9 +435,13 @@ async function findRecentEpic(projectKey, epicTypeId, summary) {
 }
 
 export async function createJiraEpic(payload) {
-  const projectKey = String(payload?.projectKey || '').trim().toUpperCase();
+  const projectKey = String(payload?.projectKey || '')
+    .trim()
+    .toUpperCase();
   if (!isValidProjectKey(projectKey)) return { error: 'Provide a valid Jira project key (e.g. SFD).' };
-  const summary = String(payload?.epicSummary || '').trim().slice(0, 250);
+  const summary = String(payload?.epicSummary || '')
+    .trim()
+    .slice(0, 250);
   if (!summary) return { error: 'The epic needs a summary.' };
   const stories = parseStories(payload?.storiesList);
 

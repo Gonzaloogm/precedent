@@ -18,6 +18,7 @@ import { invoke, rovo, view } from '@forge/bridge';
 const AGENT = { type: 'forge', agentKey: 'devils-advocate-agent', agentName: "Precedent Devil's Advocate" };
 const VERDICT_LOOK = { GO: 'success', PIVOT: 'moved', STOP: 'removed' };
 const GATE_LOOK = { done: 'success', missed: 'removed', open: 'default' };
+const ASSUMPTION_LOOK = { confirmed: 'success', disproved: 'removed', testing: 'inprogress', untested: 'default' };
 const RULING_LOOK = { upheld: 'success', 'partly upheld': 'moved', rejected: 'default', noted: 'default' };
 const panel = xcss({ padding: 'space.200', width: '100%' });
 const row = xcss({ width: '100%' });
@@ -131,6 +132,40 @@ function Verdict({ record, proposalTitle, proposalUrl, inJira, siteUrl, onCheck,
               <Text>{o.summary}</Text>
             </Inline>
           ))}
+        </Stack>
+      )}
+
+      {(record.assumptions?.length > 0 || record.history?.length > 0) && (
+        <Stack space="space.100">
+          <Heading as="h4">Assumption ledger</Heading>
+          {record.assumptions.map((a) => (
+            <Inline key={a.text} space="space.100" alignBlock="start">
+              <Box xcss={tag}>
+                <Lozenge appearance={ASSUMPTION_LOOK[a.state] || 'default'}>
+                  {a.state === 'testing' && a.due ? `testing · ${a.due}` : a.state}
+                </Lozenge>
+              </Box>
+              <Text>
+                {a.text}
+                {a.gateKey ? ` (${a.gateKey})` : ''}
+              </Text>
+            </Inline>
+          ))}
+          {record.history?.length > 0 && (
+            <Stack space="space.050">
+              <Text size="small">Learned in earlier reviews</Text>
+              {record.history.map((h) => (
+                <Inline key={`${h.reviewedAt}-${h.text}`} space="space.100" alignBlock="start">
+                  <Box xcss={tag}>
+                    <Lozenge appearance={ASSUMPTION_LOOK[h.state] || 'default'}>{h.state}</Lozenge>
+                  </Box>
+                  <Text>
+                    {h.text} ({h.reviewedAt})
+                  </Text>
+                </Inline>
+              ))}
+            </Stack>
+          )}
         </Stack>
       )}
 

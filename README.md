@@ -24,8 +24,10 @@ Built on Atlassian Forge for [Codegeist 2026](https://codegeist.devpost.com/), c
 3. **The team objects** with ordinary page comments.
 4. **Precedent Devil's Advocate** (Rovo agent) rules on every objection (upheld, partly upheld, rejected), estimates the
    economics with the company's own budgeting rules, scores four axes and gives GO, PIVOT or STOP.
-5. **The verdict stays on the page.** A byline badge shows `Committee: PIVOT · 55`; clicking it opens the
-   committee panel with the scores, the rulings and the stage gates.
+5. **The verdict stays on the page, with an assumption ledger.** Each key assumption is tied to the stage gate
+   that tests it: a met gate confirms it, a missed gate disproves it, and re-runs keep what was learned.
+   A byline badge shows `Committee: PIVOT · 55`; clicking it opens the
+   committee panel with the scores, the rulings, the ledger and the stage gates.
 6. **Approved plans become Jira work.** The agent drafts an epic and stories and creates them after you confirm.
    Each stage gate becomes a work item with a due date under the epic.
 7. **The committee keeps watching.** A daily check flags gates that passed their due date without being done,

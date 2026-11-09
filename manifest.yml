@@ -248,6 +248,13 @@ modules:
           type: string
           required: false
           description: Devil's Advocate only. One line per gate, "- 30 | measurable signal".
+        assumptions:
+          title: Key assumptions
+          type: string
+          required: false
+          description: >-
+            Devil's Advocate only. One line per assumption the verdict depends on,
+            "- assumption | gate day that tests it", e.g. "- Patients reply to the assistant | 30".
         requestType:
           title: Request type
           type: string

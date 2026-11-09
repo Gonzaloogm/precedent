@@ -7,7 +7,8 @@ import { peopleWhoWereThere } from './graph.js';
 import { isReportTitle } from './lib/review.js';
 import { isValidId } from './lib/search.js';
 import { pageIdFromLabels, GATE_LABEL } from './lib/gates.js';
-import { gateStatuses } from './gateStatus.js';
+import { liveGates } from './gateStatus.js';
+import { assumptionStates } from './lib/assumptions.js';
 import { checkMissedGates } from './gateCheck.js';
 
 async function page(pageId) {
@@ -77,10 +78,11 @@ resolver.define('getVerdict', async ({ context }) => {
     const { inJira, proposal } = await proposalFor(context);
     if (!proposal) return { record: null, inJira };
     const record = await readVerdict(proposal.id);
-    const statuses = record ? await gateStatuses(record.gates).catch(() => ({})) : {};
-    const gates = (record?.gates || []).map((g) => ({ ...g, ...(g.key ? statuses[g.key] : {}) }));
+    const gates = record ? await liveGates(record) : [];
     return {
-      record: record ? { ...record, gates } : null,
+      record: record
+        ? { ...record, gates, assumptions: assumptionStates(record.assumptions, gates), history: record.history || [] }
+        : null,
       proposalTitle: proposal.title || null,
       proposalUrl: pageUrl(proposal),
       inJira,
